@@ -52,7 +52,7 @@ Detailed technical information is maintained separately from this README.
 
 For engine structure, system responsibilities, dependency rules, runtime organization, editor design, and architectural decisions:
 
-[ARCHITECTURE.md](ARCHITECTURE.md)
+[ARCHITECTURE.md](Architecture/ARCHITECTURE.md)
 
 ### License
 
