@@ -62,7 +62,7 @@ Full licensing terms:
 
 Additional copyright and attribution information:
 
-[NOTICE](NOTICE)
+[NOTICE](Licenses/NOTICE)
 
 ## Project Status
 
