@@ -16,7 +16,7 @@ namespace plagc
 	private:
 
 		virtual void OnUpdate();
-		virtual void OnEvent();
+		void OnEvent();
 
 		bool m_Running = true;
 
