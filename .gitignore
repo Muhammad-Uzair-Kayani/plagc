@@ -1,0 +1,63 @@
+# plagc — generated Visual Studio / Premake files
+# Keep premake5.lua and Scripts/vs22/GenerateProjects.bat tracked.
+*.sln
+*.slnx
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.vcxproj.user.*
+*.VC.db
+*.VC.opendb
+*.suo
+*.user
+*.rsuser
+*.sln.docstates
+
+# Visual Studio IDE and caches
+.vs/
+[Bb]rowse.VC.db
+ipch/
+*.opendb
+*.VC.db-shm
+*.VC.db-wal
+
+# Build output folders (engine and Sandbox)
+bin/
+bin-int/
+[Bb]uild/
+[Bb]uild-int/
+obj/
+out/
+[Bb]uilds/
+
+# Compiled and intermediate files
+*.obj
+*.o
+*.pch
+*.ipch
+*.idb
+*.ilk
+*.iobj
+*.ipch
+*.tlog
+*.lastbuildstate
+*.pdb
+*.ipdb
+*.exp
+*.manifest
+*.recipe
+
+# Generated diagnostics and temporary files
+*.log
+*.tmp
+*.temp
+*.bak
+*~
+
+# Windows Explorer
+Thumbs.db
+Desktop.ini
+
+# Note: do NOT ignore all *.exe, *.lib, or *.dll.
+# vendor/premake/premake5.exe and checked-in vendor binaries may be required.
+# Compiled project binaries should be produced inside ignored build folders.
