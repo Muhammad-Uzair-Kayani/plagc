@@ -1,6 +1,5 @@
 #include <plagc.h>
 #include <GLFW/glfw3.h>
-#include <spdlog/spdlog.h>
 
 class SandboxApp : public plagc::Application
 {
@@ -12,7 +11,7 @@ public:
 		if (sucess)
 		{
 			glfwCreateWindow(1280, 720, "Window", nullptr, nullptr);
-			spdlog::info("spdlog & Windows initialized successfully!");
+			CLIENT_INFO("Initialized Window");
 		}
 	}
 

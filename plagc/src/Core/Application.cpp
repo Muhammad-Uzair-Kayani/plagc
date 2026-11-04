@@ -5,7 +5,7 @@ namespace plagc
 {
 	Application::Application()
 	{
-		
+
 	}
 
 
