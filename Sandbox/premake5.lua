@@ -1,10 +1,10 @@
--- plagc/Sandbox/premake5.lua
--- Sandbox links to plagc.lib but does NOT build/use the engine PCH.
-
+-- Executable/client project. Links engine and GLFW, but has no PCH of its own.
 project "Sandbox"
     location (path.join(ROOT_DIR, "Sandbox"))
     kind "ConsoleApp"
     language "C++"
+    cppdialect "C++latest"
+    buildoptions { "/utf-8" }
 
     targetdir (path.join(ROOT_DIR, "bin/%{cfg.buildcfg}/%{prj.name}"))
     objdir (path.join(ROOT_DIR, "bin-int/%{cfg.buildcfg}/%{prj.name}"))
@@ -24,20 +24,23 @@ project "Sandbox"
 
     includedirs {
         path.join(ROOT_DIR, "Sandbox/src"),
-        path.join(ROOT_DIR, "plagc/header"), -- permits #include <plagc.h>
-        path.join(ROOT_DIR, "plagc/src")     -- supports headers included by plagc.h
+        path.join(ROOT_DIR, "plagc/header"),    -- #include <plagc.h>
+        path.join(ROOT_DIR, "plagc/src"),       -- transitive public headers for now
+        path.join(GLFW_DIR, "include"),        -- optional direct GLFW experiments
+        path.join(SPDLOG_DIR, "include")       -- optional direct spdlog usage
     }
 
+    defines { "SPDLOG_HEADER_ONLY", "GLFW_INCLUDE_NONE" }
     enablepch "Off"
 
-    -- Links the engine library for the matching build config and
-    -- automatically makes Sandbox depend on the plagc project.
-    links { "plagc" }
+    -- Explicit final link: engine + GLFW static archive + Win32 system libraries.
+    -- Static libraries do not absorb the other .lib's object code.
+    links { "plagc", "GLFW", "user32", "gdi32", "shell32", "imm32" }
 
     filter "configurations:Dist"
         kind "WindowedApp"
 
-    -- In Dist, suppress the console window while keeping int main().
+    -- Keep engine-owned int main() without a console window in Dist.
     filter { "system:windows", "configurations:Dist" }
         entrypoint "mainCRTStartup"
 

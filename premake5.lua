@@ -1,7 +1,17 @@
--- plagc/premake5.lua
--- Shared workspace settings. Project-specific settings live in each subfolder.
-
+-- plagc: root workspace configuration.
+-- All third-party dependencies are located under root/third-party.
 ROOT_DIR = path.getabsolute(_SCRIPT_DIR)
+THIRD_PARTY_DIR = path.join(ROOT_DIR, "third-party")
+
+GLFW_DIR = path.join(THIRD_PARTY_DIR, "glfw")
+SPDLOG_DIR = path.join(THIRD_PARTY_DIR, "spdlog")
+
+if not os.isfile(path.join(GLFW_DIR, "include/GLFW/glfw3.h")) then
+    error("GLFW submodule not found at " .. GLFW_DIR .. ". Add or initialize the submodule.")
+end
+if not os.isfile(path.join(SPDLOG_DIR, "include/spdlog/spdlog.h")) then
+    error("spdlog submodule not found at " .. SPDLOG_DIR .. ". Add or initialize the submodule.")
+end
 
 workspace "plagc"
     location (ROOT_DIR)
@@ -11,32 +21,31 @@ workspace "plagc"
     configurations { "Debug", "Release", "Dist" }
     startproject "Sandbox"
 
-    -- Applies to both projects: Visual Studio uses /std:c++latest.
-    cppdialect "C++latest"
-
-    -- Consistent MSVC CRT across the static library and executable.
-    -- /MDd in Debug, /MD in Release/Dist; this does not prevent plagc.lib
-    -- from being statically linked into Sandbox.
+    -- All projects use the same MSVC CRT: /MDd for Debug, /MD for Release/Dist.
+    -- Do not put cppdialect here: GLFW is C code, not C++.
     staticruntime "Off"
 
     filter "configurations:Debug"
         defines { "_DEBUG" }
         runtime "Debug"
         symbols "On"
-        optimize "Off"             -- MSVC /Od
+        optimize "Off"
 
     filter "configurations:Release"
         defines { "NDEBUG" }
         runtime "Release"
-        optimize "Speed"           -- MSVC /O2
+        optimize "Speed"         -- MSVC /O2
 
     filter "configurations:Dist"
         defines { "NDEBUG" }
         runtime "Release"
-        optimize "Speed"           -- MSVC /O2
+        optimize "Speed"         -- MSVC /O2
 
     filter {}
 
--- Both project scripts are included from the root workspace script.
+-- GLFW is built from source. spdlog is header-only, so it needs no project.
+group "Dependencies"
+include "Scripts/premake/GLFW.lua"
+group ""
 include "plagc"
 include "Sandbox"
