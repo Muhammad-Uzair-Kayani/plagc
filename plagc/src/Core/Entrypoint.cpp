@@ -1,7 +1,6 @@
 #pragma once
 
-extern "C++" std::unique_ptr<plagc::Application> plagc::CreateApplication();
-
+#include "Application.h"
 
 int main(int argc, char* agrv[])
 {

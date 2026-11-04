@@ -48,4 +48,7 @@ project "plagc"
     filter "files:**.ixx"
         enablepch "Off"
 
+    filter "files:**/Entrypoint.cpp"
+        enablepch "Off"
+
     filter {}
