@@ -15,7 +15,7 @@ private:
 };
 
 
-std::unique_ptr<plagc::Application> plagc::CreateApplication()
+Owner<plagc::Application> plagc::CreateApplication()
 {
-	return std::make_unique<SandboxApp>();
+	return MakeUnique<SandboxApp>();
 }

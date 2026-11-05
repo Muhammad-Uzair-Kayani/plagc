@@ -18,11 +18,11 @@ namespace plagc
 
 	void Application::OnUpdate()
 	{
-		EventBus::PushEvent(std::make_shared<WindowCloseEvent>());
+		EventBus::PushEvent(MakeRef<WindowCloseEvent>());
 	}
 
 
-	bool Application::OnEvent(std::shared_ptr<Event> e)
+	bool Application::OnEvent(Ref<Event> e)
 	{
 		if (e->GetType() == EventType::WindowClose) m_Running = false;
 		return true;

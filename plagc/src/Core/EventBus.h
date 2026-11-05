@@ -8,13 +8,13 @@ namespace plagc
 	{
 	public:
 
-		static void Init(std::function<bool(std::shared_ptr<Event>)> fn)
+		static void Init(std::function<bool(Ref<Event>)> fn)
 		{
 			CORE_DEBUG("IN Event Bus");
 			OnEvent = fn;
 		}
 
-		static void PushEvent(std::shared_ptr<Event> event)
+		static void PushEvent(Ref<Event> event)
 		{
 			m_Queue.push(event);
 		}
@@ -33,8 +33,8 @@ namespace plagc
 
 	private:
 
-		static std::queue<std::shared_ptr<Event>> m_Queue;
-		static std::function<bool(std::shared_ptr<Event>)> OnEvent;
+		static std::queue<Ref<Event>> m_Queue;
+		static std::function<bool(Ref<Event>)> OnEvent;
 
 	};
 }

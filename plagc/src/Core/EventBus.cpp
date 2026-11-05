@@ -3,7 +3,7 @@
 
 namespace plagc
 {
-	std::queue<std::shared_ptr<Event>> EventBus::m_Queue;
-	std::function<bool(std::shared_ptr<Event>)> EventBus::OnEvent;
+	std::queue<Ref<Event>> EventBus::m_Queue;
+	std::function<bool(Ref<Event>)> EventBus::OnEvent;
 
 }

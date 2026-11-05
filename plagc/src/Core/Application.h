@@ -1,5 +1,4 @@
 #pragma once
-#include <memory>
 #include "Event.h"
 
 namespace plagc
@@ -14,7 +13,7 @@ namespace plagc
 
 		void Run();
 
-		bool OnEvent(std::shared_ptr<Event> e);
+		bool OnEvent(Ref<Event> e);
 
 	private:
 
@@ -24,7 +23,7 @@ namespace plagc
 
 	};
 
-	std::unique_ptr<Application> CreateApplication();
+	Owner<Application> CreateApplication();
 
 }
 
