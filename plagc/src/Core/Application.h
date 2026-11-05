@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include "Event.h"
 
 namespace plagc
 {
@@ -16,7 +17,7 @@ namespace plagc
 	private:
 
 		virtual void OnUpdate();
-		void OnEvent();
+		bool OnEvent(std::shared_ptr<Event> e);
 
 		bool m_Running = true;
 
