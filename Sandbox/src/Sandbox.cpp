@@ -7,14 +7,7 @@ public:
 
 	SandboxApp()
 	{
-		int sucess = glfwInit();
-		if (sucess)
-		{
-			glfwCreateWindow(1280, 720, "Window", nullptr, nullptr);
-			CLIENT_INFO("Initialized Window");
-			CLIENT_INFO("Initialized Window");
-		}
-		CLIENT_INFO("Out");
+		CLIENT_INFO("Sandbox Initialized");
 	}
 
 private:

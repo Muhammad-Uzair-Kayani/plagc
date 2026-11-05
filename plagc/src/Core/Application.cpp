@@ -7,7 +7,6 @@ namespace plagc
 {
 	Application::Application()
 	{
-		CORE_DEBUG("In Application");
 		EventBus::Init(std::bind(&Application::OnEvent, this, std::placeholders::_1));
 	}
 
@@ -19,9 +18,7 @@ namespace plagc
 
 	void Application::OnUpdate()
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(500));
-		CORE_DEBUG("Releasing Event");
-		EventBus::PushEvent(std::make_shared<WindowCloseEvent>(EventType::WindowClose));
+		EventBus::PushEvent(std::make_shared<WindowCloseEvent>());
 	}
 
 

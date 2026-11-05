@@ -24,13 +24,13 @@ namespace plagc
 	{
 	public:
 
-		WindowCloseEvent(EventType type) : m_Type(type) {}
+		WindowCloseEvent() {}
 
 		const EventType GetType() override { return m_Type; }
 
 	private:
 
-		EventType m_Type;
+		EventType m_Type = EventType::WindowClose;
 
 	};
 

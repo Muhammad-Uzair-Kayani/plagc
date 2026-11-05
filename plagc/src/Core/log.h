@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include<spdlog/logger.h>
 
 namespace plagc
@@ -26,7 +26,7 @@ namespace plagc
 #include <spdlog/spdlog.h>
 
 // ==========================================
-// CORE LOGGER — All levels
+// CORE LOGGER â€” All levels
 // ==========================================
 
 #define CORE_TRACE(...) \
@@ -49,7 +49,7 @@ namespace plagc
 
 
 // ==========================================
-// CLIENT LOGGER — Info and above
+// CLIENT LOGGER â€” Info and above
 // ==========================================
 
 #define CLIENT_INFO(...) \
