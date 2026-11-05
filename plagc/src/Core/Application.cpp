@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "log.h"
 #include "Application.h"
 #include "EventBus.h"
 

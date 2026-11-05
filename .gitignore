@@ -58,6 +58,9 @@ out/
 Thumbs.db
 Desktop.ini
 
+#Defulat Scripts:
+GitPushMain.bat
+
 # Note: do NOT ignore all *.exe, *.lib, or *.dll.
 # vendor/premake/premake5.exe and checked-in vendor binaries may be required.
 # Compiled project binaries should be produced inside ignored build folders.

@@ -88,5 +88,4 @@
 
 
 //Engine Side Headers
-#include "Core/Core.h"
 #include "Core/log.h"
