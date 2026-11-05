@@ -14,7 +14,7 @@ namespace plagc
 
 		virtual ~Event() {}
 
-		virtual const EventType GetType() {}
+		virtual const EventType GetType() { return EventType::None; }
 
 	private:
 

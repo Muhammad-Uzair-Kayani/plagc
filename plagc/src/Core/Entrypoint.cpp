@@ -9,6 +9,7 @@ int main(int argc, char* agrv[])
 
 	CORE_INFO("Initialized Application");
 
-	auto app = plagc::CreateApplication();
+	std::unique_ptr<plagc::Application> app = plagc::CreateApplication();
+	CORE_DEBUG("Starting Application");
 	app->Run();
 }

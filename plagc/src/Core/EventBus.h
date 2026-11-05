@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Event.h"
+#include "log.h"
 
 namespace plagc
 {
@@ -9,6 +10,7 @@ namespace plagc
 
 		static void Init(std::function<bool(std::shared_ptr<Event>)> fn)
 		{
+			CORE_DEBUG("IN Event Bus");
 			OnEvent = fn;
 		}
 

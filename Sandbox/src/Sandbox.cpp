@@ -12,7 +12,9 @@ public:
 		{
 			glfwCreateWindow(1280, 720, "Window", nullptr, nullptr);
 			CLIENT_INFO("Initialized Window");
+			CLIENT_INFO("Initialized Window");
 		}
+		CLIENT_INFO("Out");
 	}
 
 private:

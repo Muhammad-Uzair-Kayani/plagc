@@ -14,10 +14,11 @@ namespace plagc
 
 		void Run();
 
+		bool OnEvent(std::shared_ptr<Event> e);
+
 	private:
 
 		virtual void OnUpdate();
-		bool OnEvent(std::shared_ptr<Event> e);
 
 		bool m_Running = true;
 
