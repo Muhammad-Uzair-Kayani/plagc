@@ -38,6 +38,7 @@ namespace plagc
 		CORE_DEBUG("RUNNING APPLICATION");
 		while (m_Running)
 		{
+			EventBus::OnUpdate();
 			OnUpdate();
 		}
 	}

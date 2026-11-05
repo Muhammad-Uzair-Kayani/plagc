@@ -30,7 +30,7 @@ project "Sandbox"
         path.join(SPDLOG_DIR, "include")       -- optional direct spdlog usage
     }
 
-    defines { "SPDLOG_HEADER_ONLY", "GLFW_INCLUDE_NONE" }
+    defines { "SPDLOG_HEADER_ONLY", "GLFW_INCLUDE_NONE", "SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE" }
     enablepch "Off"
 
     -- Explicit final link: engine + GLFW static archive + Win32 system libraries.

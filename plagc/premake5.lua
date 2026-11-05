@@ -37,7 +37,7 @@ project "plagc"
 
     -- spdlog is header-only by default (uses bundled fmt).
     -- This explicitly selects the header-only mode for engine translation units.
-    defines { "SPDLOG_HEADER_ONLY", "GLFW_INCLUDE_NONE" }
+    defines { "SPDLOG_HEADER_ONLY", "GLFW_INCLUDE_NONE", "SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE" }
 
     enablepch "On"
     pchheader "pch.h"
