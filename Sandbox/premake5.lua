@@ -1,10 +1,9 @@
--- Executable/client project. Links engine and GLFW, but has no PCH of its own.
+-- Client executable; creates plagc::Application and links the engine.
 project "Sandbox"
     location (path.join(ROOT_DIR, "Sandbox"))
     kind "ConsoleApp"
     language "C++"
     cppdialect "C++latest"
-    buildoptions { "/utf-8" }
 
     targetdir (path.join(ROOT_DIR, "bin/%{cfg.buildcfg}/%{prj.name}"))
     objdir (path.join(ROOT_DIR, "bin-int/%{cfg.buildcfg}/%{prj.name}"))
@@ -24,24 +23,32 @@ project "Sandbox"
 
     includedirs {
         path.join(ROOT_DIR, "Sandbox/src"),
-        path.join(ROOT_DIR, "plagc/header"),    -- #include <plagc.h>
-        path.join(ROOT_DIR, "plagc/src"),       -- transitive public headers for now
-        path.join(GLFW_DIR, "include"),        -- optional direct GLFW experiments
-        path.join(SPDLOG_DIR, "include")       -- optional direct spdlog usage
+        path.join(ROOT_DIR, "plagc/header"),
+        path.join(ROOT_DIR, "plagc/src"),  -- temporary: public header dependencies
+        path.join(GLFW_DIR, "include"),
+        path.join(SPDLOG_DIR, "include")
     }
 
-    defines {"GLFW_INCLUDE_NONE", "SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE" }
+    defines {
+        "GLFW_INCLUDE_NONE",
+        "SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE"
+    }
     enablepch "Off"
 
-    -- Explicit final link: engine + GLFW static archive + Win32 system libraries.
-    -- Static libraries do not absorb the other .lib's object code.
-    links { "plagc", "GLFW", "user32", "gdi32", "shell32", "imm32" }
+    links { "plagc", "GLFW" }
 
-    filter "configurations:Dist"
+    filter "action:vs*"
+        buildoptions { "/utf-8" }
+
+    filter "system:windows"
+        links { "user32", "gdi32", "shell32", "imm32" }
+
+    -- Windows GUI subsystem only for Dist. Do NOT force mainCRTStartup.
+    filter { "system:windows", "configurations:Dist" }
         kind "WindowedApp"
 
-    -- Keep engine-owned int main() without a console window in Dist.
-    filter { "system:windows", "configurations:Dist" }
-        entrypoint "mainCRTStartup"
+    -- Linux X11 dependencies for GLFW built as a static library.
+    filter "system:linux"
+        links { "X11", "Xrandr", "Xinerama", "Xcursor", "Xi", "pthread", "dl", "m" }
 
     filter {}

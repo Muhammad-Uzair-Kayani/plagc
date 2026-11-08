@@ -1,32 +1,28 @@
--- plagc: root workspace configuration.
--- All third-party dependencies are located under root/third-party.
+-- plagc workspace. Dependencies are built with Premake (no vendor CMake).
 ROOT_DIR = path.getabsolute(_SCRIPT_DIR)
 THIRD_PARTY_DIR = path.join(ROOT_DIR, "third-party")
 
-GLFW_DIR = path.join(THIRD_PARTY_DIR, "glfw")
+GLFW_DIR   = path.join(THIRD_PARTY_DIR, "glfw")
 SPDLOG_DIR = path.join(THIRD_PARTY_DIR, "spdlog")
 
 if not os.isfile(path.join(GLFW_DIR, "include/GLFW/glfw3.h")) then
-    error("GLFW submodule not found at " .. GLFW_DIR .. ". Add or initialize the submodule.")
+    error("Missing GLFW submodule. Run: git submodule update --init --recursive")
 end
 if not os.isfile(path.join(SPDLOG_DIR, "include/spdlog/spdlog.h")) then
-    error("spdlog submodule not found at " .. SPDLOG_DIR .. ". Add or initialize the submodule.")
+    error("Missing spdlog submodule. Run: git submodule update --init --recursive")
 end
 
 workspace "plagc"
     location (ROOT_DIR)
     architecture "x86_64"
-    system "windows"
-    systemversion "latest"
     configurations { "Debug", "Release", "Dist" }
     startproject "Sandbox"
-
-    -- All projects use the same MSVC CRT: /MDd for Debug, /MD for Release/Dist.
-    -- Do not put cppdialect here: GLFW is C code, not C++.
     staticruntime "Off"
 
+    -- Do not set system = windows globally. Native VS targets Windows;
+    -- native gmake2 on Linux targets Linux.
     filter "system:windows"
-	defines {"_WIN32"}
+        systemversion "latest"
 
     filter "configurations:Debug"
         defines { "_DEBUG" }
@@ -37,16 +33,15 @@ workspace "plagc"
     filter "configurations:Release"
         defines { "NDEBUG" }
         runtime "Release"
-        optimize "Speed"         -- MSVC /O2
+        optimize "Speed"
 
     filter "configurations:Dist"
         defines { "NDEBUG", "DIST" }
         runtime "Release"
-        optimize "Speed"         -- MSVC /O2
+        optimize "Speed"
 
     filter {}
 
--- GLFW is built from source. spdlog is header-only, so it needs no project.
 group "Dependencies"
 include "Scripts/premake/GLFW.lua"
 group ""
