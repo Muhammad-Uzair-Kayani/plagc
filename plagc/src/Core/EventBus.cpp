@@ -3,15 +3,10 @@
 
 namespace plagc
 {
-	
-	EventBus::EventBus(std::function<bool(Ref<Event>)> fn) noexcept
-	{
-		OnEvent = fn;
-	}
 
-	void EventBus::PushEvent(Ref<Event> e)
+	void EventBus::PushEvent(Owner<Event> e)
 	{
-		m_Queue.push(e);
+		m_Queue.push(std::move(e));
 	}
 
 	void EventBus::OnUpdate()
@@ -20,8 +15,15 @@ namespace plagc
 		{
 			auto e = std::move(m_Queue.front());
 			m_Queue.pop();
-			OnEvent(e);
+			OnDetach(std::move(e));
 		}
+	}
+
+	void EventBus::OnDetach(Owner<Event> e)
+	{
+		auto Observers = m_ObserversList[e->GetType()];
+		for (auto& OnNotify : Observers)
+			OnNotify(*e.get());
 	}
 
 }

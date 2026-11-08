@@ -16,18 +16,22 @@ namespace plagc
 
 		void Run();
 
-		bool OnEvent(Ref<Event> e);
+		bool OnWindowShouldClose(Event& e);
 
 	private:
 
 		void Initialize();
 		void Shutdown();
 
-		void OnUpdate();
+		virtual void OnUpdate();
+
+
+	protected:
+
+		Owner<EventBus> m_EventBus;
 
 	private:
 
-		Owner<EventBus> m_EventBus;
 		Owner<Window> m_Window;
 		bool m_Running = true;
 

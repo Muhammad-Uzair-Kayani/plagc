@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Application.h"
 #include "Config.h"
+#include "WindowEvent.h"
 
 namespace plagc
 {
@@ -18,7 +19,9 @@ namespace plagc
 
 	void Application::Initialize()
 	{
-		m_EventBus = MakeUnique<EventBus>(std::bind(&Application::OnEvent, this, std::placeholders::_1));
+		m_EventBus = MakeUnique<EventBus>();
+
+		m_EventBus->Subscribe<WindowCloseRequestEvent>(std::bind(&Application::OnWindowShouldClose, this, std::placeholders::_1));
 
 		GET_PLATFROM() == Platform::Windows ? CORE_DEBUG("PLATFROM WINDOWS") : CORE_DEBUG("None");
 		GET_RENDERING_API() == RenderingAPI::DirectX ? CORE_DEBUG("PLATFROM DirectX") : CORE_DEBUG("None");
@@ -37,13 +40,13 @@ namespace plagc
 
 	void Application::OnUpdate()
 	{
-		m_Window->OnUpdate();
+		
 	}
 
 
-	bool Application::OnEvent(Ref<Event> e)
+	bool Application::OnWindowShouldClose(Event& e)
 	{
-		if (e->GetType() == EventType::WindowClose) Shutdown();
+		if (e.GetType() == EventType::WindowCloseRequest) Shutdown();
 		return true;
 	}
 
@@ -55,6 +58,7 @@ namespace plagc
 		while (m_Running)
 		{
 			OnUpdate();
+			m_Window->OnUpdate();
 			m_EventBus->OnUpdate();
 		}
 	}
