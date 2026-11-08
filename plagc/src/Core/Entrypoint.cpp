@@ -1,43 +1,62 @@
-#pragma once
 
 #include "Application.h"
 #include "log.h"
 
-#ifdef _WIN32
-#ifdef DIST
+#include <exception>
+#include <stdexcept>
 
-int WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
+#if defined(_WIN32) && defined(DIST)
+#include <Windows.h>
+
+#define LOG_CRITICAL(message) \
+        MessageBoxA(nullptr, message, "plagc - Fatal Error", \
+                    MB_OK | MB_ICONERROR)
+#else
+#define LOG_CRITICAL(message) std::puts(message)
+#endif
+
+
+int StartPlagc()
 {
 	try
 	{
-		CORE_DEBUG("TESING LOGGER");
+		CORE_DEBUG("Starting plagc");
+
 		auto app = plagc::CreateApplication();
+
+		if (!app)
+			throw std::runtime_error("Failed to initialize Application");
+
 		app->Run();
+		return 0;
 	}
-	catch (std::exception& e)
+	catch (const std::exception& e)
 	{
-		std::puts(e.what());
+		LOG_CRITICAL(e.what());
+		return 1;
+	}
+	catch (...)
+	{
+		LOG_CRITICAL("Unknown fatal exception");
+		return 1;
 	}
 }
 
+
+// Windows Dist
+#if defined(_WIN32) && defined(DIST)
+
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
+{
+	return StartPlagc();
+}
+
+// Windows Debug/Release and Linux
 #else
 
-int main(int argc, char* agrv[])
+int main()
 {
-	try
-	{
-		CORE_DEBUG("TESING LOGGER");
-		auto app = plagc::CreateApplication();
-		app->Run();
-	}
-	catch (std::exception& e)
-	{
-		std::puts(e.what());
-	}
-
+	return StartPlagc();
 }
 
-#endif //DIST
-
-
-#endif // _WIN32
+#endif

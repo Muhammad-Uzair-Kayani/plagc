@@ -23,14 +23,14 @@ namespace plagc
 		s_ClientLogger->set_level(spdlog::level::trace);
 	}
 
-	Ref<spdlog::logger> Log::GetCoreLogger() noexcept
+	spdlog::logger& Log::GetCoreLogger() noexcept
 	{
-		return s_CoreLogger;
+		return *s_CoreLogger;
 	}
 
-	Ref<spdlog::logger> Log::GetClientLogger() noexcept
+	spdlog::logger& Log::GetClientLogger() noexcept
 	{
-		return s_ClientLogger;
+		return *s_ClientLogger;
 	}
 
 

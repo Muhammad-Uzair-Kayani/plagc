@@ -16,6 +16,7 @@ namespace plagc
 			break;
 
 		default:
+			return nullptr;
 			break;
 		}
 	}
