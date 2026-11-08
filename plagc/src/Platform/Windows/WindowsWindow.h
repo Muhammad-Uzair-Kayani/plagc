@@ -11,8 +11,6 @@ namespace plagc
 	{
 	public:
 
-		WindowsWindow(uint16_t width, uint16_t height, const std::string& name, bool vsync,
-			std::function<void(Ref<Event>)> fn) noexcept;
 		~WindowsWindow() noexcept;
 
 		virtual void OnUpdate() override;
@@ -26,6 +24,11 @@ namespace plagc
 		void Initialize(const std::string& name);
 		void Shutdown();
 
+		WindowsWindow(uint16_t width, uint16_t height, const std::string& name, bool vsync,
+			std::function<void(Ref<Event>)> fn);
+
+
+		friend class ::plagc::WindowBuilder;
 
 
 	private:

@@ -11,11 +11,11 @@ namespace plagc
 	{
 	public:
 
-		EventBus(std::function<bool(Ref<Event>)> fn);
+		EventBus(std::function<bool(Ref<Event>)> fn) noexcept;
 
 		void PushEvent(Ref<Event> e);
 
-		void OnUpdate() noexcept;
+		void OnUpdate();
 
 	private:
 

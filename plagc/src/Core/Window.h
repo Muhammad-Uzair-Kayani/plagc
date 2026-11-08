@@ -8,12 +8,12 @@
 
 namespace plagc
 {
-
+	
 	class Window
 	{
 	public:
 
-		Window() noexcept = default;
+		
 		virtual ~Window() noexcept = default;
 
 		virtual void OnUpdate() = 0;
@@ -23,6 +23,8 @@ namespace plagc
 		virtual const bool GetVsync() const noexcept = 0;
 
 	protected:
+
+		Window() noexcept = default;
 
 	};
 

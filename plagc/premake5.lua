@@ -27,11 +27,14 @@ project "plagc"
     }
 
     includedirs {
-        path.join(ROOT_DIR, "plagc/src"),
-        path.join(ROOT_DIR, "plagc/header"),
-        path.join(ROOT_DIR, "plagc/pch"),
-        path.join(GLFW_DIR, "include"),
-        path.join(SPDLOG_DIR, "include")
+    	path.join(ROOT_DIR, "plagc/src"),
+    	path.join(ROOT_DIR, "plagc/header"),
+    	path.join(ROOT_DIR, "plagc/pch")
+    }
+
+    externalincludedirs {
+    	path.join(GLFW_DIR, "include"),
+    	path.join(SPDLOG_DIR, "include")
     }
 
     defines {

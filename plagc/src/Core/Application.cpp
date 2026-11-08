@@ -5,7 +5,7 @@
 namespace plagc
 {
 
-	Application::Application() noexcept
+	Application::Application()
 	{
 		Initialize();
 	}
@@ -18,20 +18,15 @@ namespace plagc
 
 	void Application::Initialize()
 	{
-		try
-		{
-			m_EventBus = MakeUnique<EventBus>(std::bind(&Application::OnEvent, this, std::placeholders::_1));
-			GET_PLATFROM() == Platform::Windows ? CORE_DEBUG("PLATFROM WINDOWS") : CORE_DEBUG("None");
-			GET_RENDERING_API() == RenderingAPI::DirectX ? CORE_DEBUG("PLATFROM DirectX") : CORE_DEBUG("None");
-			WindowBuilder windowBuilder;
-			m_Window = windowBuilder.Width(1280).Height(720).Name("plagc").Vsync(true).CallBack(
-				std::bind(&EventBus::PushEvent, m_EventBus.get(), std::placeholders::_1)
-			).Build();
-		}
-		catch (std::exception e)
-		{
-			std::puts(e.what());
-		}
+		m_EventBus = MakeUnique<EventBus>(std::bind(&Application::OnEvent, this, std::placeholders::_1));
+
+		GET_PLATFROM() == Platform::Windows ? CORE_DEBUG("PLATFROM WINDOWS") : CORE_DEBUG("None");
+		GET_RENDERING_API() == RenderingAPI::DirectX ? CORE_DEBUG("PLATFROM DirectX") : CORE_DEBUG("None");
+		
+		WindowBuilder windowBuilder;
+		m_Window = windowBuilder.Width(1280).Height(720).Name("plagc").Vsync(true).CallBack(
+			std::bind(&EventBus::PushEvent, m_EventBus.get(), std::placeholders::_1)
+		).Build();
 		
 	}
 

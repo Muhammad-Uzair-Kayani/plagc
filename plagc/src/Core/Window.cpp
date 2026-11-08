@@ -12,7 +12,7 @@ namespace plagc
 		switch (GET_PLATFROM())
 		{
 		case Platform::Windows:
-			return MakeUnique<WindowsWindow>(*_width.get(), *_height.get(), *_name.get(), *_vsync.get(), _fn);
+			return Owner<Window>(new WindowsWindow(*_width.get(), *_height.get(), *_name.get(), *_vsync.get(), _fn));
 			break;
 
 		default:

@@ -6,7 +6,7 @@ namespace plagc
 {
 
 	WindowsWindow::WindowsWindow(uint16_t width, uint16_t height, const std::string& name, bool vsync,
-		std::function<void(Ref<Event>)> fn) noexcept
+		std::function<void(Ref<Event>)> fn)
 	{
 		m_pimpl = MakeUnique<WindowData>();
 		m_pimpl->Width = width;
@@ -46,7 +46,7 @@ namespace plagc
 		if (!glfwInit())
 		{
 			CORE_CRITICAL("FAILED TO INITIALIZE GLFW");
-			return;
+			throw std::runtime_error("GLFW Initialization Failed");
 		}
 
 		m_Window = glfwCreateWindow(static_cast<int>(m_pimpl->Width),
@@ -55,7 +55,7 @@ namespace plagc
 		if (!m_Window)
 		{
 			CORE_CRITICAL("FAILED TO CREATE GLFW WINDOW");
-			return;
+			throw std::runtime_error("GLFW Window Creation Failed");
 		}
 
 		CORE_DEBUG("WINDOW CREATED SUCESSFULLY");

@@ -4,12 +4,9 @@
 namespace plagc
 {
 	
-	EventBus::EventBus(std::function<bool(Ref<Event>)> fn)
+	EventBus::EventBus(std::function<bool(Ref<Event>)> fn) noexcept
 	{
-		CORE_DEBUG("IN Event Bus");
 		OnEvent = fn;
-		if (!fn)
-			throw std::logic_error("Cannot Assign Empty Callback");
 	}
 
 	void EventBus::PushEvent(Ref<Event> e)
@@ -17,23 +14,13 @@ namespace plagc
 		m_Queue.push(e);
 	}
 
-	void EventBus::OnUpdate() noexcept
+	void EventBus::OnUpdate()
 	{
-		try
+		while (!m_Queue.empty())
 		{
-			while (!m_Queue.empty())
-			{
-				OnEvent(m_Queue.front());
-				m_Queue.pop();
-			}
-		}
-		catch (std::bad_function_call e)
-		{
-			std::puts("Invalid Callback Call");
-		}
-		catch (std::exception e)
-		{
-			std::puts(e.what());
+			auto e = std::move(m_Queue.front());
+			m_Queue.pop();
+			OnEvent(e);
 		}
 	}
 

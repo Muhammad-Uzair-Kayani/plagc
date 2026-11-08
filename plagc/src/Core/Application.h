@@ -11,7 +11,7 @@ namespace plagc
 
 	public:
 
-		Application() noexcept;
+		Application();
 		virtual ~Application() noexcept;
 
 		void Run();
