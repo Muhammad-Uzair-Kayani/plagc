@@ -12,9 +12,10 @@ namespace plagc
 	{
 	public:
 
-		virtual ~Event() {}
+		Event() noexcept {}
+		virtual ~Event() noexcept = default;
 
-		virtual const EventType GetType() { return EventType::None; }
+		virtual constexpr EventType GetType() const { return EventType::None; }
 
 	private:
 
@@ -24,9 +25,9 @@ namespace plagc
 	{
 	public:
 
-		WindowCloseEvent() {}
+		WindowCloseEvent() noexcept{}
 
-		const EventType GetType() override { return m_Type; }
+		constexpr EventType GetType() const override{ return m_Type; }
 
 	private:
 

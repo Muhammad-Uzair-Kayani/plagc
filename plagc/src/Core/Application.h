@@ -1,6 +1,8 @@
 #pragma once
 #include "Core.h"
 #include "Event.h"
+#include "EventBus.h"
+#include "Window.h"
 
 namespace plagc
 {
@@ -9,8 +11,8 @@ namespace plagc
 
 	public:
 
-		Application();
-		virtual ~Application();
+		Application() noexcept;
+		virtual ~Application() noexcept;
 
 		void Run();
 
@@ -18,8 +20,15 @@ namespace plagc
 
 	private:
 
-		virtual void OnUpdate();
+		void Initialize();
+		void Shutdown();
 
+		void OnUpdate();
+
+	private:
+
+		Owner<EventBus> m_EventBus;
+		Owner<Window> m_Window;
 		bool m_Running = true;
 
 	};

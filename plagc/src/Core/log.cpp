@@ -5,14 +5,16 @@
 namespace plagc
 {
 
-	Ref<spdlog::logger> Log::s_CoreLogger;
-
-	Ref<spdlog::logger> Log::s_ClientLogger;
-
-	void Log::Init()
+	Log& Log::Get()
 	{
-		s_CoreLogger = spdlog::stdout_color_mt("plagc");
-		s_ClientLogger = spdlog::stdout_color_mt("Client");
+		static Log logger;
+		return logger;
+	}
+
+	Log::Log()
+	{
+		s_CoreLogger = SET_SINK("plagc");
+		s_ClientLogger = SET_SINK("Client");
 
 		s_CoreLogger->set_pattern("[%H:%M:%S.%e] [%n] [%^%l%$] [%s:%#] %v");
 		s_ClientLogger->set_pattern("[%H:%M:%S.%e] [%n] [%^%l%$] %v");
@@ -21,12 +23,12 @@ namespace plagc
 		s_ClientLogger->set_level(spdlog::level::trace);
 	}
 
-	Ref<spdlog::logger> Log::GetCoreLogger()
+	Ref<spdlog::logger> Log::GetCoreLogger() noexcept
 	{
 		return s_CoreLogger;
 	}
 
-	Ref<spdlog::logger> Log::GetClientLogger()
+	Ref<spdlog::logger> Log::GetClientLogger() noexcept
 	{
 		return s_ClientLogger;
 	}

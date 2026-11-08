@@ -5,7 +5,7 @@ class SandboxApp : public plagc::Application
 {
 public:
 
-	SandboxApp()
+	SandboxApp() noexcept
 	{
 		CLIENT_INFO("Sandbox Initialized");
 	}

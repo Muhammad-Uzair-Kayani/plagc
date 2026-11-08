@@ -2,39 +2,25 @@
 #include "Core.h"
 #include "Core/Event.h"
 
+#include <functional>
+#include <queue>
+
 namespace plagc
 {
 	class EventBus
 	{
 	public:
 
-		static void Init(std::function<bool(Ref<Event>)> fn)
-		{
-			CORE_DEBUG("IN Event Bus");
-			OnEvent = fn;
-		}
+		EventBus(std::function<bool(Ref<Event>)> fn);
 
-		static void PushEvent(Ref<Event> event)
-		{
-			m_Queue.push(event);
-		}
+		void PushEvent(Ref<Event> e);
 
-		static void OnUpdate()
-		{
-			while (!m_Queue.empty())
-			{
-
-				auto event = m_Queue.front();
-				m_Queue.pop();
-				OnEvent(event);
-
-			}
-		}
+		void OnUpdate() noexcept;
 
 	private:
 
-		static std::queue<Ref<Event>> m_Queue;
-		static std::function<bool(Ref<Event>)> OnEvent;
+		std::queue<Ref<Event>> m_Queue;
+		std::function<bool(Ref<Event>)> OnEvent;
 
 	};
 }

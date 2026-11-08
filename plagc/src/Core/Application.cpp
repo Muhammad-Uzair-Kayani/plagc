@@ -1,29 +1,54 @@
 #include "pch.h"
 #include "Application.h"
-#include "EventBus.h"
+#include "Config.h"
 
 namespace plagc
 {
-	Application::Application()
+
+	Application::Application() noexcept
 	{
-		EventBus::Init(std::bind(&Application::OnEvent, this, std::placeholders::_1));
+		Initialize();
 	}
 
 
-	Application::~Application()
+	Application::~Application() noexcept
 	{
+		Shutdown();
+	}
 
+	void Application::Initialize()
+	{
+		try
+		{
+			m_EventBus = MakeUnique<EventBus>(std::bind(&Application::OnEvent, this, std::placeholders::_1));
+			GET_PLATFROM() == Platform::Windows ? CORE_DEBUG("PLATFROM WINDOWS") : CORE_DEBUG("None");
+			GET_RENDERING_API() == RenderingAPI::DirectX ? CORE_DEBUG("PLATFROM DirectX") : CORE_DEBUG("None");
+			WindowBuilder windowBuilder;
+			m_Window = windowBuilder.Width(1280).Height(720).Name("plagc").Vsync(true).CallBack(
+				std::bind(&EventBus::PushEvent, m_EventBus.get(), std::placeholders::_1)
+			).Build();
+		}
+		catch (std::exception e)
+		{
+			std::puts(e.what());
+		}
+		
+	}
+
+	void Application::Shutdown()
+	{
+		m_Running = false;
 	}
 
 	void Application::OnUpdate()
 	{
-		EventBus::PushEvent(MakeRef<WindowCloseEvent>());
+		m_Window->OnUpdate();
 	}
 
 
 	bool Application::OnEvent(Ref<Event> e)
 	{
-		if (e->GetType() == EventType::WindowClose) m_Running = false;
+		if (e->GetType() == EventType::WindowClose) Shutdown();
 		return true;
 	}
 
@@ -34,8 +59,8 @@ namespace plagc
 		CORE_DEBUG("RUNNING APPLICATION");
 		while (m_Running)
 		{
-			EventBus::OnUpdate();
 			OnUpdate();
+			m_EventBus->OnUpdate();
 		}
 	}
 }

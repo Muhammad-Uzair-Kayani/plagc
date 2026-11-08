@@ -8,45 +8,59 @@ namespace plagc
 	{
 	public:
 
-		static void Init();
+		static Log& Get();
 
-		static Ref<spdlog::logger>GetCoreLogger();
-		static Ref<spdlog::logger>GetClientLogger();
+		Ref<spdlog::logger> GetCoreLogger() noexcept;
+		Ref<spdlog::logger> GetClientLogger() noexcept;
 
 	private:
 
-		static Ref<spdlog::logger> s_CoreLogger;
-		static Ref<spdlog::logger> s_ClientLogger;
+		Log();
+		
+		void Init();
+
+	private:
+		Ref<spdlog::logger> s_CoreLogger;
+		Ref<spdlog::logger> s_ClientLogger;
 
 	};
 
 }
 
-#pragma once
-
+#pragma 
 #include <spdlog/spdlog.h>
+
+#ifdef DIST
+
+#define SET_SINK(...) ::spdlog::(__VA_ARGS__);
+
+#else
+
+#define SET_SINK(...) ::spdlog::stdout_color_mt(__VA_ARGS__);
+
+#endif
 
 // ==========================================
 // CORE LOGGER — All levels
 // ==========================================
 
 #define CORE_TRACE(...) \
-    SPDLOG_LOGGER_TRACE(::plagc::Log::GetCoreLogger().get(), __VA_ARGS__)
+    SPDLOG_LOGGER_TRACE(::plagc::Log::Get().GetCoreLogger().get(), __VA_ARGS__)
 
 #define CORE_DEBUG(...) \
-    SPDLOG_LOGGER_DEBUG(::plagc::Log::GetCoreLogger().get(), __VA_ARGS__)
+    SPDLOG_LOGGER_DEBUG(::plagc::Log::Get().GetCoreLogger().get(), __VA_ARGS__)
 
 #define CORE_INFO(...) \
-    SPDLOG_LOGGER_INFO(::plagc::Log::GetCoreLogger().get(), __VA_ARGS__)
+    SPDLOG_LOGGER_INFO(::plagc::Log::Get().GetCoreLogger().get(), __VA_ARGS__)
 
 #define CORE_WARN(...) \
-    SPDLOG_LOGGER_WARN(::plagc::Log::GetCoreLogger().get(), __VA_ARGS__)
+    SPDLOG_LOGGER_WARN(::plagc::Log::Get().GetCoreLogger().get(), __VA_ARGS__)
 
 #define CORE_ERROR(...) \
-    SPDLOG_LOGGER_ERROR(::plagc::Log::GetCoreLogger().get(), __VA_ARGS__)
+    SPDLOG_LOGGER_ERROR(::plagc::Log::Get().GetCoreLogger().get(), __VA_ARGS__)
 
 #define CORE_CRITICAL(...) \
-    SPDLOG_LOGGER_CRITICAL(::plagc::Log::GetCoreLogger().get(), __VA_ARGS__)
+    SPDLOG_LOGGER_CRITICAL(::plagc::Log::Get().GetCoreLogger().get(), __VA_ARGS__)
 
 
 // ==========================================
@@ -54,13 +68,13 @@ namespace plagc
 // ==========================================
 
 #define CLIENT_INFO(...) \
-    SPDLOG_LOGGER_INFO(::plagc::Log::GetClientLogger().get(), __VA_ARGS__)
+    SPDLOG_LOGGER_INFO(::plagc::Log::Get().GetClientLogger().get(), __VA_ARGS__)
 
 #define CLIENT_WARN(...) \
-    SPDLOG_LOGGER_WARN(::plagc::Log::GetClientLogger().get(), __VA_ARGS__)
+    SPDLOG_LOGGER_WARN(::plagc::Log::Get().GetClientLogger().get(), __VA_ARGS__)
 
 #define CLIENT_ERROR(...) \
-    SPDLOG_LOGGER_ERROR(::plagc::Log::GetClientLogger().get(), __VA_ARGS__)
+    SPDLOG_LOGGER_ERROR(::plagc::Log::Get().GetClientLogger().get(), __VA_ARGS__)
 
 #define CLIENT_CRITICAL(...) \
-    SPDLOG_LOGGER_CRITICAL(::plagc::Log::GetClientLogger().get(), __VA_ARGS__)
+    SPDLOG_LOGGER_CRITICAL(::plagc::Log::Get().GetClientLogger().get(), __VA_ARGS__)

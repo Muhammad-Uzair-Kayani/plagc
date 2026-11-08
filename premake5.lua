@@ -25,6 +25,9 @@ workspace "plagc"
     -- Do not put cppdialect here: GLFW is C code, not C++.
     staticruntime "Off"
 
+    filter "system:windows"
+	defines {"_WIN32"}
+
     filter "configurations:Debug"
         defines { "_DEBUG" }
         runtime "Debug"
@@ -37,7 +40,7 @@ workspace "plagc"
         optimize "Speed"         -- MSVC /O2
 
     filter "configurations:Dist"
-        defines { "NDEBUG" }
+        defines { "NDEBUG", "DIST" }
         runtime "Release"
         optimize "Speed"         -- MSVC /O2
 
