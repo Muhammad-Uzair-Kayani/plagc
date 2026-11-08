@@ -1,5 +1,6 @@
 #include <plagc.h>
 #include <GLFW/glfw3.h>
+#include <iostream>
 
 class SandboxApp : public plagc::Application
 {
@@ -8,7 +9,7 @@ public:
 	SandboxApp()
 	{
 		CLIENT_INFO("Sandbox Initialized");
-		m_EventBus->Subscribe<plagc::KeyPressedEvent>(std::bind(&SandboxApp::OnKeyPressed, this, std::placeholders::_1));
+		m_KeyEventHandle = m_EventBus->Subscribe<plagc::KeyPressedEvent>(std::bind(&SandboxApp::OnKeyPressed, this, std::placeholders::_1));
 	}
 
 	void OnKeyPressed(plagc::Event& e)
@@ -21,7 +22,7 @@ public:
 	}
 
 private:
-
+	plagc::SubscriptionHandler<plagc::KeyPressedEvent> m_KeyEventHandle;
 };
 
 

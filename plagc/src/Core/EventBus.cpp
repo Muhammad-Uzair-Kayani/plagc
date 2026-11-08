@@ -21,9 +21,22 @@ namespace plagc
 
 	void EventBus::OnDetach(Owner<Event> e)
 	{
-		auto Observers = m_ObserversList[e->GetType()];
-		for (auto& OnNotify : Observers)
-			OnNotify(*e.get());
+		auto Observers = m_ObserversList.find(e->GetType());
+
+		if (Observers != m_ObserversList.end())
+		{
+			for (auto& Subscriber : Observers->second)
+			{
+				Subscriber.OnNotify(*e.get());
+				if(e->GetStatus() == EventStatus::Consume) break;
+			}
+
+			return;
+		}
+
+		CORE_WARN("Event Type Not Added to Queue");
 	}
+
+	
 
 }

@@ -3,6 +3,7 @@
 #include "Event.h"
 #include "EventBus.h"
 #include "Window.h"
+#include "WindowEvent.h"
 
 namespace plagc
 {
@@ -32,6 +33,7 @@ namespace plagc
 
 	private:
 
+		SubscriptionHandler<WindowCloseRequestEvent> m_WindowCloseReqHandle;
 		Owner<Window> m_Window;
 		bool m_Running = true;
 

@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Application.h"
 #include "Config.h"
-#include "WindowEvent.h"
 
 namespace plagc
 {
@@ -14,14 +13,14 @@ namespace plagc
 
 	Application::~Application() noexcept
 	{
-		Shutdown();
+
 	}
 
 	void Application::Initialize()
 	{
 		m_EventBus = MakeUnique<EventBus>();
 
-		m_EventBus->Subscribe<WindowCloseRequestEvent>(std::bind(&Application::OnWindowShouldClose, this, std::placeholders::_1));
+		m_WindowCloseReqHandle = m_EventBus->Subscribe<WindowCloseRequestEvent>(std::bind(&Application::OnWindowShouldClose, this, std::placeholders::_1));
 
 		GET_PLATFROM() == Platform::Windows ? CORE_DEBUG("PLATFROM WINDOWS") : CORE_DEBUG("None");
 		GET_RENDERING_API() == RenderingAPI::DirectX ? CORE_DEBUG("PLATFROM DirectX") : CORE_DEBUG("None");
@@ -35,6 +34,7 @@ namespace plagc
 
 	void Application::Shutdown()
 	{
+		CORE_TRACE("Shutting Down Application");
 		m_Running = false;
 	}
 

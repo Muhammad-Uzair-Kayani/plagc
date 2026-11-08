@@ -165,7 +165,6 @@ namespace plagc
 
 				auto e = MakeUnique<KeyPressedEvent>(key, scancode, mods);
 				data.PublishEvent(std::move(e));
-				CORE_DEBUG("Key Callback");
 			}
 		);
 
