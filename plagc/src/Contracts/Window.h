@@ -1,7 +1,7 @@
 #pragma once
-#include "Core.h"
-#include "Event.h"
-#include "Config.h"
+#include "Core/Core.h"
+#include "Event/Event.h"
+#include "Core/Config.h"
 
 #include <functional>
 #include <string>

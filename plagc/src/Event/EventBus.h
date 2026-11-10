@@ -1,7 +1,7 @@
 #pragma once
-#include "Core.h"
-#include "log.h"
-#include "Core/Event.h"
+#include "Core/Core.h"
+#include "Core/log.h"
+#include "Event/Event.h"
 
 #include <functional>
 #include <queue>

@@ -1,9 +1,9 @@
 #pragma once
 #include "Core.h"
-#include "Event.h"
-#include "EventBus.h"
-#include "Window.h"
-#include "WindowEvent.h"
+#include "Event/Event.h"
+#include "Event/EventBus.h"
+#include "Contracts/Window.h"
+#include "Event/WindowEvent.h"
 
 namespace plagc
 {

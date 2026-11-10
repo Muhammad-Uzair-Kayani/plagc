@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "WindowsWindow.h"
-#include "Core/WindowEvent.h"
-#include "Core/KeyEvent.h"
+#include "Event/WindowEvent.h"
+#include "Event/KeyEvent.h"
 #include "Core/Core.h"
 
 #include <exception>

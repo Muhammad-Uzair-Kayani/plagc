@@ -15,8 +15,13 @@ namespace plagc
 			return Owner<Window>(new WindowsWindow(*_width.get(), *_height.get(), *_name.get(), *_vsync.get(), _fn));
 			break;
 
+		case Platform::Linux:
+			return Owner<Window>(new WindowsWindow(*_width.get(), *_height.get(), *_name.get(), *_vsync.get(), _fn));
+			break;
+
+
 		default:
-			return nullptr;
+			throw std::runtime_error("Platform Not Supported Yet");
 			break;
 		}
 	}

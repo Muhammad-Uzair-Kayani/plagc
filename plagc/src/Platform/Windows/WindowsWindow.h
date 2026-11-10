@@ -1,5 +1,5 @@
 #pragma once
-#include "Core/Window.h"
+#include "Contracts/Window.h"
 
 #include <string>
 
