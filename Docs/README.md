@@ -6,7 +6,7 @@ The project is currently under active development.
 
 > **Status:** Early development
 
-## Overviewa
+## Overview
 
 plagc aims to provide a focused environment for developing 3D games without carrying unnecessary engine complexity.
 
