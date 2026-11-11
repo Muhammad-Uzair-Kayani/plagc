@@ -178,6 +178,8 @@ Additional copyright and attribution information: [NOTICE](Licenses/NOTICE)
 
 plagc is currently in its foundation and early development stage.
 
+See [STATUS.md](Dev/STATUS.md) for the development checklist and current progress.
+
 APIs, tooling, features, and internal implementation are expected to change while the engine matures. The repository should not yet be considered production-ready.
 
 ## Contributions
