@@ -2,6 +2,7 @@
 #include "Application.h"
 #include "Config.h"
 
+
 namespace plagc
 {
 
@@ -18,7 +19,7 @@ namespace plagc
 
 	void Application::Initialize()
 	{
-		m_EventBus = MakeUnique<EventBus>();
+		m_EventBus = MakeUnique<EventBus>(1024);
 
 		m_WindowCloseReqHandle = m_EventBus->Subscribe<WindowCloseRequestEvent>(std::bind(&Application::OnWindowShouldClose, this, std::placeholders::_1));
 

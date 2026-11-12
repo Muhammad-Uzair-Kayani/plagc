@@ -2,9 +2,9 @@
 #include "Core/Core.h"
 #include "Core/log.h"
 #include "Event/Event.h"
+#include "Utility/MPSCQueue.h"
 
 #include <functional>
-#include <queue>
 #include <unordered_map>
 #include <vector>
 #include <cstdint>
@@ -70,7 +70,7 @@ namespace plagc
 	{
 	public:
 
-		EventBus() noexcept = default;
+		EventBus(size_t capacity) :  m_Queue(capacity) {}
 
 		template<typename T>
 		SubscriptionHandler<T> Subscribe(std::function<void(Event& e)> OnNotify);
@@ -78,7 +78,7 @@ namespace plagc
 		template<typename T>
 		void UnSubscribe(uint16_t id);
 
-		void PushEvent(Owner<Event> e);
+		bool PushEvent(Owner<Event> e);
 
 		void OnUpdate();
 
@@ -89,7 +89,7 @@ namespace plagc
 
 	private:
 
-		std::queue<Owner<Event>> m_Queue;
+		MPSCQueue<Owner<Event>> m_Queue;
 		std::unordered_map<EventType, std::vector<Subscription>> m_ObserversList;
 		uint16_t m_NextID = 0;
 	};

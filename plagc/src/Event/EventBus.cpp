@@ -4,17 +4,16 @@
 namespace plagc
 {
 
-	void EventBus::PushEvent(Owner<Event> e)
+	bool EventBus::PushEvent(Owner<Event> e)
 	{
-		m_Queue.push(std::move(e));
+		return m_Queue.EnQueue(std::move(e));
 	}
 
 	void EventBus::OnUpdate()
 	{
-		while (!m_Queue.empty())
+		Owner<Event> e;
+		while (m_Queue.Try_Pop(e))
 		{
-			auto e = std::move(m_Queue.front());
-			m_Queue.pop();
 			OnDetach(std::move(e));
 		}
 	}

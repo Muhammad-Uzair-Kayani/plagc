@@ -31,6 +31,13 @@ namespace plagc
 			m_Queue.resize(m_Range);
 		}
 
+		bool Empty()
+		{
+			size_t rear = m_Rear.load(std::memory_order_acquire);
+			size_t front = m_Front.load(std::memory_order_acquire);
+			return static_cast<ptrdiff_t>(front - rear) >= 0
+		}
+
 		bool Try_Pop(T& e)
 		{
 			
