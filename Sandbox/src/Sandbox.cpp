@@ -17,19 +17,19 @@ public:
 		size_t count = std::thread::hardware_concurrency();
 		if (count == 0) count = 4;
 
-		std::vector<std::thread> m_ThreadPool;
-
 		m_ThreadPool.reserve(count);
 
 
 		while (count-- > 0)
 		{
-			Owner<plagc::Event> e = MakeUnique<plagc::KeyPressedEvent>(1, count, 1);
-			m_ThreadPool.emplace_back(&plagc::EventBus::PushEvent, m_EventBus.get(), std::move(e));
+			m_ThreadPool.emplace_back(&SandboxApp::StressTest, this);
 		}
 
-		for (auto& thread : m_ThreadPool) if (thread.joinable()) thread.join();
+	}
 
+	~SandboxApp()
+	{
+		for (auto& thread : m_ThreadPool) if (thread.joinable()) thread.join();
 	}
 
 	void OnKeyPressed(plagc::Event& e)
@@ -41,8 +41,28 @@ public:
 		}
 	}
 
+	void OnUpdate() override
+	{
+
+	}
+
+	void StressTest()
+	{
+		while (m_Running.load(std::memory_order_acquire))
+		{
+			Owner<plagc::Event> e = MakeUnique<plagc::KeyPressedEvent>(1, 2, 1);
+			m_EventBus->PushEvent(std::move(e));
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+		}
+	}
+
 private:
+
+
+private:
+
 	plagc::SubscriptionHandler<plagc::KeyPressedEvent> m_KeyEventHandle;
+	std::vector<std::thread> m_ThreadPool;
 };
 
 

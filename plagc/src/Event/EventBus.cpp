@@ -4,16 +4,31 @@
 namespace plagc
 {
 
-	bool EventBus::PushEvent(Owner<Event> e)
+	bool EventBus::PushEvent(Owner<Event>&& e)
 	{
-		return m_Queue.EnQueue(std::move(e));
+		if (m_Queue.EnQueue(std::move(e)))
+			return true;
+
+		if (e->GetCategory() == EventCategory::Critical)
+		{
+			CORE_DEBUG("Pushing Critical Event");
+			return m_WaitBuffer.EnQueue(std::move(e));
+		}
+
+		return false;
+		
 	}
 
 	void EventBus::OnUpdate()
 	{
-		std::unique_lock<std::shared_mutex> lock(m_BucketMutex);
+		std::unique_lock<std::mutex> lock(m_BucketMutex);
+
 		Owner<Event> e;
 		while (m_Queue.Try_Pop(e))
+		{
+			OnDetach(std::move(e));
+		}
+		while (m_WaitBuffer.Try_Pop(e))
 		{
 			OnDetach(std::move(e));
 		}
@@ -36,7 +51,5 @@ namespace plagc
 
 		CORE_WARN("Event Type Not Added to Queue");
 	}
-
-	
 
 }

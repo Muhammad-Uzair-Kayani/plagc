@@ -50,9 +50,18 @@ namespace plagc
 		Consume
 	};
 
+	enum class EventCategory
+	{
+		Normal,
+		Critical
+	};
+
 	class Event
 	{
 	public:
+
+		Event(EventCategory category = EventCategory::Normal) noexcept : m_Category(category) {}
+
 		virtual ~Event() noexcept = default;
 
 		virtual EventType GetType() const noexcept = 0;
@@ -61,15 +70,27 @@ namespace plagc
 		{
 			return m_Status;
 		}
-
+		
 		void SetStatus(EventStatus status) noexcept
 		{
 			m_Status = status;
 		}
 
+		const EventCategory GetCategory() const noexcept
+		{
+			return m_Category;
+		}
+
+		void SetCategory(EventCategory category) noexcept
+		{
+			m_Category = category;
+		}
+
+
 	private:
 
 		EventStatus m_Status = EventStatus::Continue;
+		EventCategory m_Category;
 
 	};
 

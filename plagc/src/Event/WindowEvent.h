@@ -46,7 +46,7 @@ namespace plagc
 	class WindowClosedEvent final : public Event
 	{
 	public:
-		WindowClosedEvent() noexcept = default;
+		WindowClosedEvent() noexcept : Event(EventCategory::Critical) {};
 
 		static constexpr EventType StaticType = EventType::WindowClosed;
 
@@ -59,7 +59,7 @@ namespace plagc
 	class WindowCloseRequestEvent final : public Event
 	{
 	public:
-		WindowCloseRequestEvent() noexcept = default;
+		WindowCloseRequestEvent() noexcept : Event(EventCategory::Critical) {}
 
 		static constexpr EventType StaticType = EventType::WindowCloseRequest;
 

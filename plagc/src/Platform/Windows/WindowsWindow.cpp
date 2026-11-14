@@ -10,7 +10,7 @@ namespace plagc
 {
 
 	WindowsWindow::WindowsWindow(uint16_t width, uint16_t height, const std::string& name, bool vsync,
-		std::function<void(Owner<Event>)> fn)
+		std::function<bool(Owner<Event>)> fn)
 	{
 		m_pimpl = MakeUnique<WindowData>();
 		m_pimpl->Width = width;
@@ -96,7 +96,16 @@ namespace plagc
 					glfwGetWindowUserPointer(window));
 
 				auto e = MakeUnique<WindowCloseRequestEvent>();
-				data.PublishEvent(std::move(e));
+				
+				if (data.PublishEvent(std::move(e)))
+				{
+					CORE_TRACE("WindowClose Request Pushed");
+				}
+				else
+				{
+					CORE_TRACE("Failed To Push Close Req");
+				}
+
 			}
 		);
 

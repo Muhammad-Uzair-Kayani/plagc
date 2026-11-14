@@ -5,6 +5,8 @@
 #include "Contracts/Window.h"
 #include "Event/WindowEvent.h"
 
+#include <atomic>
+
 namespace plagc
 {
 	class Application
@@ -34,8 +36,12 @@ namespace plagc
 	private:
 
 		SubscriptionHandler<WindowCloseRequestEvent> m_WindowCloseReqHandle;
+		SubscriptionHandler<WindowClosedEvent> m_WindowClosedHandle;
 		Owner<Window> m_Window;
-		bool m_Running = true;
+
+	protected:
+
+		alignas(std::hardware_destructive_interference_size)std::atomic<bool> m_Running{ true };
 
 	};
 

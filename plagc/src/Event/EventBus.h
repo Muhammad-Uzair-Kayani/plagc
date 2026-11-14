@@ -20,7 +20,6 @@ namespace plagc
 	public:
 		std::function<void(Event& e)> OnNotify;
 		uint16_t ID;
-		bool Active = true;
 	};
 
 	class EventBus;
@@ -73,7 +72,7 @@ namespace plagc
 	{
 	public:
 
-		EventBus(size_t capacity) :  m_Queue(capacity) {}
+		EventBus(size_t capacity) :  m_Queue(capacity), m_WaitBuffer(capacity / 4) {}
 
 		template<typename T>
 		SubscriptionHandler<T> Subscribe(std::function<void(Event& e)> OnNotify);
@@ -81,7 +80,7 @@ namespace plagc
 		template<typename T>
 		void UnSubscribe(uint16_t id);
 
-		bool PushEvent(Owner<Event> e);
+		bool PushEvent(Owner<Event>&& e);
 
 		void OnUpdate();
 
@@ -93,9 +92,10 @@ namespace plagc
 	private:
 
 		MPSCQueue<Owner<Event>> m_Queue;
+		MPSCQueue<Owner<Event>> m_WaitBuffer;
 		std::unordered_map<EventType, std::vector<Subscription>> m_ObserversList;
 		uint16_t m_NextID = 0;
-		std::shared_mutex m_BucketMutex;
+		std::mutex m_BucketMutex;
 	};
 
 	template<typename T>
@@ -113,20 +113,21 @@ namespace plagc
 	template<typename T>
 	void EventBus::UnSubscribe(uint16_t id)
 	{
-		std::shared_lock<std::shared_mutex> lock(m_BucketMutex);
-		auto& observers = m_ObserversList.find(T::StaticType);
+		std::unique_lock<std::mutex> lock(m_BucketMutex);
+		auto observers = m_ObserversList.find(T::StaticType);
 
 		if (observers == m_ObserversList.end())
 			return;
 
-		for (auto& observer : observers)
-		{
-			if (observer.ID == id)
+		size_t count = std::erase_if(observers->second,
+			[id](auto& observer)
 			{
-				observer.Active = false;
-				CORE_DEBUG("Subscriber removed: {}", id);
+				return observer.ID == id;
 			}
-		}
+			);
+
+		if(count > 0)
+			CORE_DEBUG("Subscriber removed: {}", id);
 
 	}
 
@@ -134,12 +135,12 @@ namespace plagc
 	SubscriptionHandler<T> EventBus::Subscribe(
 		std::function<void(Event&)> OnNotify)
 	{
-		std::unique_lock<std::shared_mutex> lock(m_BucketMutex);
+		std::unique_lock<std::mutex> lock(m_BucketMutex);
 
 		uint16_t id = ++m_NextID;
 
 		m_ObserversList[T::StaticType].push_back(
-			Subscription{ id, std::move(OnNotify) }
+			Subscription{ std::move(OnNotify), id }
 		);
 
 		CORE_DEBUG("Subscriber added: {}", id);

@@ -54,7 +54,7 @@ namespace plagc
 			return true;
 		}
 
-		bool EnQueue(T e)
+		bool EnQueue(T&& e)
 		{
 			//Multiple Producers could enqueue so we have to synchronize the insertion
 			//Get the current m_Front to enqueue to that position

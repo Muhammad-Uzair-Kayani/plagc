@@ -25,7 +25,7 @@ namespace plagc
 		void Shutdown();
 
 		WindowsWindow(uint16_t width, uint16_t height, const std::string& name, bool vsync,
-			std::function<void(Owner<Event>)> fn);
+			std::function<bool(Owner<Event>)> fn);
 
 
 		friend class ::plagc::WindowBuilder;
@@ -37,7 +37,7 @@ namespace plagc
 			uint16_t Width;
 			uint16_t Height;
 			bool Vsync;
-			std::function<void(Owner<Event>)> PublishEvent;
+			std::function<bool(Owner<Event>)> PublishEvent;
 		};
 
 		GLFWwindow* m_Window;

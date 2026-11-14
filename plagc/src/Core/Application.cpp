@@ -2,6 +2,7 @@
 #include "Application.h"
 #include "Config.h"
 
+#include <chrono>
 
 namespace plagc
 {
@@ -19,9 +20,10 @@ namespace plagc
 
 	void Application::Initialize()
 	{
-		m_EventBus = MakeUnique<EventBus>(1024);
+		m_EventBus = MakeUnique<EventBus>(2048);
 
 		m_WindowCloseReqHandle = m_EventBus->Subscribe<WindowCloseRequestEvent>(std::bind(&Application::OnWindowShouldClose, this, std::placeholders::_1));
+		m_WindowClosedHandle = m_EventBus->Subscribe<WindowClosedEvent>(std::bind(&Application::OnWindowShouldClose, this, std::placeholders::_1));
 
 		GET_PLATFROM() == Platform::Windows ? CORE_DEBUG("PLATFROM WINDOWS") : CORE_DEBUG("None");
 		GET_RENDERING_API() == RenderingAPI::DirectX ? CORE_DEBUG("PLATFROM DirectX") : CORE_DEBUG("None");
@@ -36,7 +38,7 @@ namespace plagc
 	void Application::Shutdown()
 	{
 		CORE_TRACE("Shutting Down Application");
-		m_Running = false;
+		m_Running.store(false, std::memory_order_release);
 	}
 
 	void Application::OnUpdate()
@@ -47,7 +49,19 @@ namespace plagc
 
 	bool Application::OnWindowShouldClose(Event& e)
 	{
-		if (e.GetType() == EventType::WindowCloseRequest) Shutdown();
+
+		if (e.GetType() == EventType::WindowCloseRequest)
+		{
+			
+			Owner<Event> _e = MakeUnique<WindowClosedEvent>();
+			m_EventBus->PushEvent(std::move(_e));
+
+		}
+		else if (e.GetType() == EventType::WindowClosed)
+		{
+			Shutdown();
+		}
+
 		return true;
 	}
 
@@ -56,7 +70,7 @@ namespace plagc
 	void Application::Run()
 	{
 		CORE_DEBUG("RUNNING APPLICATION");
-		while (m_Running)
+		while (m_Running.load(std::memory_order_relaxed))
 		{
 			OnUpdate();
 			m_Window->OnUpdate();

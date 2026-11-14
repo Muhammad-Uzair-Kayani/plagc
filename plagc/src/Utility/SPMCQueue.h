@@ -75,7 +75,7 @@ namespace plagc
 			return true;
 		}
 
-		bool EnQueue(T e)
+		bool EnQueue(T&& e)
 		{
 			//Single Producer no synchronization required for rear
 			//Get the current m_Rear to enqueue to that position
