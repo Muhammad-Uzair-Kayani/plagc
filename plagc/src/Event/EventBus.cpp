@@ -11,6 +11,7 @@ namespace plagc
 
 	void EventBus::OnUpdate()
 	{
+		std::unique_lock<std::shared_mutex> lock(m_BucketMutex);
 		Owner<Event> e;
 		while (m_Queue.Try_Pop(e))
 		{

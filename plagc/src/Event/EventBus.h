@@ -4,11 +4,13 @@
 #include "Event/Event.h"
 #include "Utility/MPSCQueue.h"
 
+
 #include <functional>
 #include <unordered_map>
 #include <vector>
 #include <cstdint>
 #include <utility>
+#include <mutex>
 
 namespace plagc
 {
@@ -16,8 +18,9 @@ namespace plagc
 	struct Subscription
 	{
 	public:
-		uint16_t ID;
 		std::function<void(Event& e)> OnNotify;
+		uint16_t ID;
+		bool Active = true;
 	};
 
 	class EventBus;
@@ -92,6 +95,7 @@ namespace plagc
 		MPSCQueue<Owner<Event>> m_Queue;
 		std::unordered_map<EventType, std::vector<Subscription>> m_ObserversList;
 		uint16_t m_NextID = 0;
+		std::shared_mutex m_BucketMutex;
 	};
 
 	template<typename T>
@@ -109,25 +113,29 @@ namespace plagc
 	template<typename T>
 	void EventBus::UnSubscribe(uint16_t id)
 	{
-		auto it = m_ObserversList.find(T::StaticType);
+		std::shared_lock<std::shared_mutex> lock(m_BucketMutex);
+		auto& observers = m_ObserversList.find(T::StaticType);
 
-		if (it == m_ObserversList.end())
+		if (observers == m_ObserversList.end())
 			return;
 
-		auto removed = std::erase_if(it->second,
-			[id](const Subscription& sub)
+		for (auto& observer : observers)
+		{
+			if (observer.ID == id)
 			{
-				return sub.ID == id;
-			});
+				observer.Active = false;
+				CORE_DEBUG("Subscriber removed: {}", id);
+			}
+		}
 
-		if (removed > 0)
-			CORE_DEBUG("Subscriber removed: {}", id);
 	}
 
 	template<typename T>
 	SubscriptionHandler<T> EventBus::Subscribe(
 		std::function<void(Event&)> OnNotify)
 	{
+		std::unique_lock<std::shared_mutex> lock(m_BucketMutex);
+
 		uint16_t id = ++m_NextID;
 
 		m_ObserversList[T::StaticType].push_back(
