@@ -1,9 +1,9 @@
 #pragma once
 #include "Core.h"
-#include "Event/Event.h"
-#include "Event/EventBus.h"
+#include "EventSystem/Event.h"
+#include "EventSystem/EventBus.h"
 #include "Contracts/Window.h"
-#include "Event/WindowEvent.h"
+#include "EventSystem/WindowEvent.h"
 
 #include <atomic>
 

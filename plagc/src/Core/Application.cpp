@@ -2,8 +2,6 @@
 #include "Application.h"
 #include "Config.h"
 
-#include <chrono>
-
 namespace plagc
 {
 
