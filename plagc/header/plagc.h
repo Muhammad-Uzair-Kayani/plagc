@@ -6,3 +6,5 @@
 #include "EventSystem/WindowEvent.h"
 #include "EventSystem/KeyEvent.h"
 #include "EventSystem/MouseEvent.h"
+#include "JobSystem/JobSystem.h"
+#include "JobSystem/JobAllocator.h"

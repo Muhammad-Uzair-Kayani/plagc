@@ -4,8 +4,7 @@
 #include "EventSystem/EventBus.h"
 #include "Contracts/Window.h"
 #include "EventSystem/WindowEvent.h"
-
-#include <atomic>
+#include "JobSystem/JobSystem.h"
 
 namespace plagc
 {
@@ -38,10 +37,15 @@ namespace plagc
 		SubscriptionHandler<WindowCloseRequestEvent> m_WindowCloseReqHandle;
 		SubscriptionHandler<WindowClosedEvent> m_WindowClosedHandle;
 		Owner<Window> m_Window;
-
+		
 	protected:
 
-		alignas(std::hardware_destructive_interference_size)std::atomic<bool> m_Running{ true };
+		JobSystem m_JobSystem;
+
+
+	private:
+
+		bool m_Running = true;
 
 	};
 

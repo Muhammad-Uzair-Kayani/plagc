@@ -1,65 +1,83 @@
 #pragma once
-class FuncWrapper
+#include <type_traits>
+#include <concepts>
+
+
+namespace plagc
 {
 
-private:
+	template<typename T, typename Self>
+	concept JobCallable = !std::same_as<std::remove_cvref_t<T>, Self>&&
+		std::invocable<std::decay_t<T>&>&&
+		std::constructible_from<std::decay_t<T>, T>;
 
-	class BaseImpl
+	class FuncWrapper
 	{
-	public:
-
-		virtual ~BaseImpl() = default;
-
-		virtual void call() = 0;
 
 	private:
 
-	};
+		class BaseImpl
+		{
+		public:
 
-	template<typename F>
-	class Impl : public BaseImpl
-	{
+			virtual ~BaseImpl() = default;
+
+			virtual void call() = 0;
+
+		private:
+
+		};
+
+		template<typename F>
+		class Impl : public BaseImpl
+		{
+		public:
+
+			Impl(F&& _f) : fn(std::forward<F>(_f)) {}
+
+			void call() override
+			{
+				fn();
+			}
+
+		private:
+
+			F fn;
+
+		};
+
 	public:
 
-		Impl(F&& _f) : fn(std::move(_f)) {}
 
-		void call() override
+		template<JobCallable<FuncWrapper> F>
+		FuncWrapper(F&& f)
+			: pImpl(MakeUnique<Impl<std::decay_t<F>>>(std::forward<F>(f)))
 		{
-			fn();
+		}
+
+		template<typename F>
+		FuncWrapper(FuncWrapper&& other) noexcept : pImpl(std::forward<F>(other.pImpl)) {}
+
+		FuncWrapper& operator=(FuncWrapper&& other) noexcept
+		{
+			pImpl = std::move(other.pImpl);
+			return *this;
+		}
+
+		FuncWrapper() = default;
+
+		template<typename F>
+		FuncWrapper(const F& f) = delete;
+		FuncWrapper(const FuncWrapper& other) = delete;
+
+		void operator() ()
+		{
+			pImpl->call();
 		}
 
 	private:
 
-		F fn;
+		Owner<BaseImpl> pImpl;
 
 	};
-
-public:
-
-	template<typename F>
-	FucnWrapper(F&& f) : pImpl(MakeUnique<Impl<F>>(std::move(f))) {}
-
-	FucnWrapper(FucnWrapper&& other) noexcept : pImpl(std::move(other.pImpl)) {}
-
-	FucnWrapper& operator=(FucnWrapper&& other) noexcept
-	{
-		pImpl = std::move(other.pImpl);
-		return *this;
-	}
-
-	FucnWrapper() = default;
-
-	template<typename F>
-	FucnWrapper(const F& f) = delete;
-	FucnWrapper(const FucnWrapper& other) = delete;
-
-	void operator() ()
-	{
-		pImpl->call();
-	}
-
-private:
-
-	Owner<BaseImpl> pImpl;
-
-};
+}

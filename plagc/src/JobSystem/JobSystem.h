@@ -1,45 +1,50 @@
 #pragma once
 
 #include "Core/Core.h"
-#include "FunctionWrapper.h"
+#include "Job.h"
+#include "Utility/MPMCQueue.h"
 
-#include <thread>
-#include <future>
 #include <vector>
-
+#include <thread>
+#include <atomic>
+#include <exception>
 
 namespace plagc
 {
+	class JobSystem;
 
-	class Job
+	class ThreadWrapper
 	{
 	public:
 
-		Job(FuncWrapper&& func) noexcept : m_Function(std::move(func))
-		{
+		
+		ThreadWrapper(void(JobSystem::*func)(), JobSystem* instance) : m_Thread(func, instance) {}
 
-		}
-		Job& operator=(FuncWrapper&& func) noexcept
+		ThreadWrapper(ThreadWrapper&& other) noexcept : m_Thread(std::move(other.m_Thread)) {}
+
+		ThreadWrapper& operator=(ThreadWrapper&& other)
 		{
-			m_Function = std::move(func);
+			if (this == &other)
+				throw std::runtime_error("Unable To Copy Self Thread Wrapper");
+
+			if (m_Thread.joinable())
+				m_Thread.join();
+
+			m_Thread = std::move(other.m_Thread);
+
 			return *this;
 		}
 
-		Job(Job&& other) noexcept = default;
-		Job& operator=(Job&& other) noexcept = default;
-
-		Job(const FuncWrapper& wrapper) = delete;
-		Job(const Job& wrapper) = delete;
-		Job& operator=(const FuncWrapper& job) = delete;
-		Job& operator=(const Job& job) = delete;
+		~ThreadWrapper()
+		{
+			if (m_Thread.joinable())
+				m_Thread.join();
+		}
 
 	private:
 
-		FuncWrapper m_Function;
-		std::vector<Job*> m_Continuations;
-		Job* parent;
-		uint32_t m_DependencyCount;
-		uint32_t m_UnfinishedJobs;
+		std::thread m_Thread;
+
 	};
 
 	class JobGraph
@@ -48,7 +53,7 @@ namespace plagc
 
 		JobGraph() = default;
 
-
+		void AddDependency(Job*, Job*);
 
 	private:
 
@@ -59,10 +64,22 @@ namespace plagc
 	{
 	public:
 
-		template<typename F>
-		
+		JobSystem();
+
+		void ShutDown(bool valid) { m_ShouldClose.store(valid, std::memory_order_release); }
+
+		void Submit(Job* _job);
+
 
 	private:
+
+		void Try_Work();
+
+	private:
+
+		MPMCQueue<Job*> m_JobQueue{4096};
+		std::vector<ThreadWrapper> m_ThreadPool;
+		std::atomic<bool> m_ShouldClose{ false };
 
 	};
 }

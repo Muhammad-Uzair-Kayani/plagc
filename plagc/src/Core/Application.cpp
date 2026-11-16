@@ -36,7 +36,8 @@ namespace plagc
 	void Application::Shutdown()
 	{
 		CORE_TRACE("Shutting Down Application");
-		m_Running.store(false, std::memory_order_release);
+		m_Running = false;
+		m_JobSystem.ShutDown(true);
 	}
 
 	void Application::OnUpdate()
@@ -68,7 +69,7 @@ namespace plagc
 	void Application::Run()
 	{
 		CORE_DEBUG("RUNNING APPLICATION");
-		while (m_Running.load(std::memory_order_relaxed))
+		while (m_Running)
 		{
 			OnUpdate();
 			m_Window->OnUpdate();

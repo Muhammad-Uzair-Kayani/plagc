@@ -32,18 +32,24 @@ public:
 
 	void OnUpdate() override
 	{
-
+		StressTest();
 	}
 
 	void StressTest()
 	{
-		
+		auto fn = [] { CLIENT_INFO("Job Executed;"); };
+
+		auto job = m_Allocator.Allocate(std::move(fn));
+
+		m_JobSystem.Submit(job);
 	}
 
 private:
 
 
 private:
+
+	plagc::JobAllocator m_Allocator;
 
 	plagc::SubscriptionHandler<plagc::KeyPressedEvent> m_KeyEventHandle;
 
