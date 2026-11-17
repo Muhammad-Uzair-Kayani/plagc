@@ -39,7 +39,7 @@ public:
 
 	void StressTest()
 	{
-		constexpr size_t count = 11000;
+		constexpr size_t count = 1100000;
 
 		auto results =
 			std::make_shared<std::vector<double>>(count);
