@@ -7,6 +7,8 @@
 
 namespace plagc
 {
+	class JobSystem;
+
 	enum class JobState
 	{
 		Waiting,

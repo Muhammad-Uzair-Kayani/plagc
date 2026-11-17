@@ -62,6 +62,9 @@ namespace plagc
 			return job;
 		}
 
+		template<typename F>
+		Job* ParallelFor(size_t start, size_t end, F&& fn);
+
 		void AddDependency(Job*, Job*);
 
 		
@@ -85,67 +88,35 @@ namespace plagc
 		void Submit(F&& fn)
 		{
 			auto job = JobAllocator::Allocate(std::move(fn));
-			m_JobQueue.EnQueue(std::move(job));
+			PushJob(job);
 		}
 
 		template<typename F>
-		Job* Parallel_For(size_t start, size_t end, F&& fn)
+		Job* ParallelFor(size_t start, size_t end, F&& fn)
 		{
+			auto job = Parallel_For(start, end, std::forward<F>(fn));
 			
-			if (start >= end)
-				return nullptr;
-
-			auto partitions = m_ThreadPool.size();
-
-			//Excat partitions as number of Workers
-			//Only rounds up if one partition is required extra
-			auto batchSize = (end - start + partitions - 1) / partitions;
+			if(job)
+				PushJob(std::move(job));
 			
-			auto root = JobAllocator::Allocate([] {}, nullptr);
-
-			auto task = [this, start, end, batchSize, Conquer = std::forward<F>(fn), root]
-				{
-					//Divide
-					if (end - start > batchSize)
-					{
-
-						auto mid = (start + end) / 2;
-
-						//Left Side Divide
-						Job* left = DivideJob(start, mid, batchSize, &Conquer, root);
-						//Right Side Divide
-						Job* right = DivideJob(mid, end, batchSize, &Conquer, root);
-
-					}
-					//Conquer
-					else
-					{
-						for (size_t i = start; i < end; ++i)
-							Conquer(i);
-					}
-				};
-
-			*root = (std::move(task));
-
-			PushJob(std::move(root));
-
-			return root;
+			return job;
 		}
 
-		void PushJob(Job* job)
-		{
-			job->m_State = JobState::Ready;
-			m_JobQueue.EnQueue(std::move(job));
-		}
+		template<typename F>
+		Job* parallel_for(size_t start, size_t end, F&& fn);
+
+		void PushJob(Job* job);
+
+		size_t GetPoolSize() const noexcept { return m_ThreadPool.size(); }
+
+		template<typename F>
+		Job* DivideJob(size_t start, size_t end, size_t batchSize, const F* p_Conquer, Job* job);
 
 	private:
 
 		void OnDetach(Job* job);
 
 		void Try_Work();
-
-		template<typename F>
-		Job* DivideJob(size_t start, size_t end, size_t batchSize, const F* p_Conquer, Job* job);
 
 	private:
 
@@ -154,6 +125,61 @@ namespace plagc
 		std::atomic<bool> m_ShouldClose{ false };
 
 	};
+
+	template<typename F>
+	Job* plagc::JobGraph::ParallelFor(size_t start, size_t end, F&& fn)
+	{
+
+		auto job = r_JobSystem.parallel_for(start, end, std::forward<F>(fn));
+
+		if(job)
+			m_JobList.push_back(job);
+
+		return job;
+	}
+
+
+	template<typename F>
+	Job* plagc::JobSystem::parallel_for(size_t start, size_t end, F&& fn)
+	{
+
+		if (start >= end)
+			return nullptr;
+
+		auto partitions = m_ThreadPool.size();
+
+		//Excat partitions as number of Workers
+		//Only rounds up if one partition is required extra
+		auto batchSize = (end - start + partitions - 1) / partitions;
+
+		auto root = JobAllocator::Allocate([] {}, nullptr);
+
+		auto task = [this, start, end, batchSize, Conquer = std::forward<F>(fn), root]
+			{
+				//Divide
+				if (end - start > batchSize)
+				{
+
+					auto mid = (start + end) / 2;
+
+					//Left Side Divide
+					Job* left = DivideJob(start, mid, batchSize, &Conquer, root);
+					//Right Side Divide
+					Job* right = DivideJob(mid, end, batchSize, &Conquer, root);
+
+				}
+				//Conquer
+				else
+				{
+					for (size_t i = start; i < end; ++i)
+						Conquer(i);
+				}
+			};
+
+		*root = (std::move(task));
+
+		return root;
+	}
 
 	template<typename F>
 	Job* plagc::JobSystem::DivideJob(size_t start, size_t end, size_t batchSize, const F* p_Conquer, Job* parent)

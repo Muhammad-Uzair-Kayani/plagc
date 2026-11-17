@@ -15,7 +15,7 @@ public:
 	{
 		CLIENT_INFO("Sandbox Initialized");
 		m_KeyEventHandle = m_EventBus->Subscribe<plagc::KeyPressedEvent>(std::bind(&SandboxApp::OnKeyPressed, this, std::placeholders::_1));
-
+		StressTest();
 	}
 
 	~SandboxApp()
@@ -34,15 +34,24 @@ public:
 
 	void OnUpdate() override
 	{
-		StressTest();
+		
 	}
 
 	void StressTest()
 	{
-		auto job = m_JobSystem.Parallel_For(0, 1000000, [](size_t i)
+		auto graph = plagc::JobGraph(m_JobSystem);
+
+		auto job = graph.ParallelFor(0, 11000, [](size_t i)
 			{
-				CLIENT_INFO("Executed Job A with counter: {0}", i);
+				std::this_thread::sleep_for(std::chrono::microseconds(1));
 			});
+
+		auto job2 = graph.AddJob([] {CLIENT_INFO("Job Finished"); });
+		
+		graph.AddDependency(job2, job);
+
+		graph.Submit();
+
 	}
 
 private:

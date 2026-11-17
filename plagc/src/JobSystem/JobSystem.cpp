@@ -37,10 +37,17 @@ namespace plagc
 	{
 		
 		auto count = WorkerCount();
-
+		CORE_TRACE("Total Worker Initialized {0}", count);
 		for (uint32_t i = 0; i < count; ++i)
 			m_ThreadPool.emplace_back(ThreadWrapper(&JobSystem::Try_Work, this));
 
+	}
+
+	void JobSystem::PushJob(Job* job)
+	{
+		job->m_State = JobState::Ready;
+		if (m_JobQueue.EnQueue(std::move(job)))
+			CORE_TRACE("Job Pushed Into Global Queue");
 	}
 
 	void JobSystem::OnDetach(Job* job)
@@ -56,6 +63,8 @@ namespace plagc
 
 			return;
 		}
+
+		CORE_TRACE("Worker [{}] executing job", std::hash<std::thread::id>{}(std::this_thread::get_id()) % 100);
 
 		job->Execute();
 
