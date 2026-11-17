@@ -37,52 +37,103 @@ public:
 		
 	}
 
+
 	void StressTest()
 	{
-		constexpr size_t count = 1100000;
+		constexpr size_t count = 1'100'000;
+		constexpr int iterations = 5000;
 
-		auto results =
+		auto parallelResults =
 			std::make_shared<std::vector<double>>(count);
 
-		auto start = std::chrono::steady_clock::now();
+		auto sequentialResults =
+			std::make_shared<std::vector<double>>(count);
 
 		plagc::JobGraph graph(m_JobSystem);
 
-		auto job = graph.ParallelFor(0, count, [results](size_t i)
+		auto parallelStart = std::chrono::steady_clock::now();
+
+		// JOB A: Parallel execution
+		auto jobA = graph.ParallelFor(
+			0, count,
+			[parallelResults](size_t i)
 			{
 				double value = static_cast<double>(i) + 1.0;
 
-				for (int j = 0; j < 5000; ++j)
+				for (int j = 0; j < iterations; ++j)
 				{
 					value = std::sqrt(
 						value * 1.000001 + (j % 7) + 1.0
 					);
 				}
 
-				(*results)[i] = value;
-			});
+				(*parallelResults)[i] = value;
+			}
+		);
 
-		auto finished = graph.AddJob([results, start]()
+		// JOB B: Sequential execution
+		auto jobB = graph.AddJob(
+			[parallelResults, sequentialResults, count, parallelStart]()
 			{
-				double checksum = 0.0;
+				auto parallelEnd = std::chrono::steady_clock::now();
 
-				for (double value : *results)
-					checksum += value;
-
-				auto end = std::chrono::steady_clock::now();
-
-				auto elapsed =
+				double parallelMs =
 					std::chrono::duration<double, std::milli>(
-						end - start
+						parallelEnd - parallelStart
 					).count();
 
-				CLIENT_INFO("Execution Time: {} ms", elapsed);
-				CLIENT_INFO("Checksum: {}", checksum);
-			});
+				auto sequentialStart = std::chrono::steady_clock::now();
 
-		graph.AddDependency(finished, job);
+				for (size_t i = 0; i < count; ++i)
+				{
+					double value = static_cast<double>(i) + 1.0;
+
+					for (int j = 0; j < iterations; ++j)
+					{
+						value = std::sqrt(
+							value * 1.000001 + (j % 7) + 1.0
+						);
+					}
+
+					(*sequentialResults)[i] = value;
+				}
+
+				auto sequentialEnd = std::chrono::steady_clock::now();
+
+				double sequentialMs =
+					std::chrono::duration<double, std::milli>(
+						sequentialEnd - sequentialStart
+					).count();
+
+				double parallelChecksum = 0.0;
+				double sequentialChecksum = 0.0;
+
+				for (size_t i = 0; i < count; ++i)
+				{
+					parallelChecksum += (*parallelResults)[i];
+					sequentialChecksum += (*sequentialResults)[i];
+				}
+
+				CLIENT_INFO("=== Job System Benchmark ===");
+				CLIENT_INFO("Parallel Time: {} ms", parallelMs);
+				CLIENT_INFO("Sequential Time: {} ms", sequentialMs);
+				CLIENT_INFO("Speedup: {}x", sequentialMs / parallelMs);
+				CLIENT_INFO("Efficiency (10 workers): {}%",
+					(sequentialMs / parallelMs) / 10.0 * 100.0);
+
+				CLIENT_INFO("Parallel Checksum: {}", parallelChecksum);
+				CLIENT_INFO("Sequential Checksum: {}", sequentialChecksum);
+				CLIENT_INFO("Checksums Match: {}",
+					parallelChecksum == sequentialChecksum);
+			}
+		);
+
+		// Job B executes ONLY after Job A fully completes
+		graph.AddDependency(jobB, jobA);
+
 		graph.Submit();
 	}
+
 
 private:
 

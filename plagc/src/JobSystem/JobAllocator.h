@@ -1,26 +1,38 @@
 #pragma once
+
+#include "Core/Core.h"
 #include "Job.h"
+#include <memory>
+#include <new>
+#include <utility>
 
 namespace plagc
 {
-	class JobAllocator
-	{
-	public:
+    // Fixed-capacity, thread-safe object pool with aligned heap fallback.
+    // Existing Allocate/DeAllocate call sites remain unchanged.
+    class JobAllocator final
+    {
+    public:
+        template<typename F, typename... Args>
+        static Job* Allocate(F&& func, Args&&... args)
+        {
+            void* storage = AcquireStorage();
+            try
+            {
+                return std::construct_at(static_cast<Job*>(storage),
+                    std::forward<F>(func), std::forward<Args>(args)...);
+            }
+            catch (...)
+            {
+                ReleaseStorage(storage);
+                throw;
+            }
+        }
 
-		template<typename F, typename...Args>
-		static Job* Allocate(F&& func, Args&&...args);
+        static void DeAllocate(Job* job) noexcept;
 
-		static void DeAllocate(Job* job);
-
-	private:
-
-
-	};
-
-	template<typename F, typename...Args>
-	Job* plagc::JobAllocator::Allocate(F&& func, Args&&...args)
-	{
-		return new Job(std::forward<F>(func), std::forward<Args>(args)...);
-	}
-
+    private:
+        static void* AcquireStorage();
+        static void ReleaseStorage(void* storage) noexcept;
+    };
 }

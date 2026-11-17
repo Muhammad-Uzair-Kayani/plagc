@@ -48,6 +48,7 @@ out/
 *.recipe
 
 # Generated diagnostics and temporary files
+/Deliverables
 *.log
 *.tmp
 *.temp
