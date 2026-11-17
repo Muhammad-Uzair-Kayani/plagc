@@ -1,9 +1,11 @@
 #pragma once
 #include "FunctionWrapper.h"
 
-#include <vector>
-#include <new>
 #include <atomic>
+#include <cstdint>
+#include <new>
+#include <utility>
+#include <vector>
 
 namespace plagc
 {
@@ -11,22 +13,17 @@ namespace plagc
 
 	enum class JobState
 	{
-		Waiting,
-		Ready,
-		Running,
-		Completed,
-		Terminated
+		Waiting, Ready, Running, Completed, Terminated
 	};
 
 	class Job
 	{
 	public:
-
 		template<typename F>
-		Job(F&& func, Job* parent = nullptr) noexcept : m_Function(std::forward<F>(func)), m_Parent(parent) 
+		Job(F&& func, Job* parent = nullptr)
+			: m_Function(std::forward<F>(func)), m_Parent(parent)
 		{
-			m_UnfinishedJobs.fetch_add(1, std::memory_order_acq_rel);
-
+			// 1 represents the job's own callable. Each child adds one.
 			if (m_Parent)
 				m_Parent->m_UnfinishedJobs.fetch_add(1, std::memory_order_acq_rel);
 		}
@@ -38,17 +35,15 @@ namespace plagc
 			return *this;
 		}
 
-		Job(Job&& other) noexcept = default;
-		Job& operator=(Job&& other) noexcept = default;
+		Job(const Job&) = delete;
+		Job& operator=(const Job&) = delete;
+		Job(Job&&) = delete;             // Atomics and identity must not move.
+		Job& operator=(Job&&) = delete;
 
-		Job(const FuncWrapper& wrapper) = delete;
-		Job(const Job& wrapper) = delete;
-		Job& operator=(const FuncWrapper& job) = delete;
-		Job& operator=(const Job& job) = delete;
-
-		void AddContinuation(Job* _job)
+		void AddContinuation(Job* job)
 		{
-			m_Continuations.push_back(_job);
+			// Only while building a graph; never concurrently with execution.
+			m_Continuations.push_back(job);
 		}
 
 		const std::vector<Job*>& GetContinuations() const noexcept
@@ -58,26 +53,26 @@ namespace plagc
 
 		void Execute()
 		{
-			m_State = JobState::Running;
+			m_State.store(JobState::Running, std::memory_order_relaxed);
 			m_Function();
-			m_State = JobState::Completed;
+			m_State.store(JobState::Completed, std::memory_order_release);
 		}
 
-		void Finish(JobSystem& jobsystem);
+		// Called EXACTLY ONCE, when m_UnfinishedJobs goes from 1 to 0.
+		// Deletes this Job. No caller may dereference it afterward.
+		void Finish(JobSystem& jobSystem);
 
 	public:
-
 		FuncWrapper m_Function;
-		
 		std::vector<Job*> m_Continuations;
-		
 		Job* m_Parent = nullptr;
-
-		JobState m_State = JobState::Waiting;
-
-		alignas(std::hardware_destructive_interference_size)std::atomic<uint32_t> m_DependencyCount{ 0 };
-		alignas(std::hardware_destructive_interference_size)std::atomic<uint32_t> m_UnfinishedJobs{ 0 };
-		alignas(std::hardware_destructive_interference_size)std::atomic<uint32_t> m_Finished{ false };
+		std::atomic<JobState> m_State{ JobState::Waiting };
+		std::atomic<bool> m_CancelRequested{ false };
+		alignas(std::hardware_destructive_interference_size)
+			std::atomic<std::uint32_t> m_DependencyCount{ 0 };
+		alignas(std::hardware_destructive_interference_size)
+			std::atomic<std::uint32_t> m_UnfinishedJobs{ 1 };
+		// Never poll a Job* after the job might have been destroyed.
+		std::atomic<bool> m_Finished{ false };
 	};
-
 }

@@ -39,19 +39,49 @@ public:
 
 	void StressTest()
 	{
-		auto graph = plagc::JobGraph(m_JobSystem);
+		constexpr size_t count = 11000;
 
-		auto job = graph.ParallelFor(0, 11000, [](size_t i)
+		auto results =
+			std::make_shared<std::vector<double>>(count);
+
+		auto start = std::chrono::steady_clock::now();
+
+		plagc::JobGraph graph(m_JobSystem);
+
+		auto job = graph.ParallelFor(0, count, [results](size_t i)
 			{
-				std::this_thread::sleep_for(std::chrono::microseconds(1));
+				double value = static_cast<double>(i) + 1.0;
+
+				for (int j = 0; j < 5000; ++j)
+				{
+					value = std::sqrt(
+						value * 1.000001 + (j % 7) + 1.0
+					);
+				}
+
+				(*results)[i] = value;
 			});
 
-		auto job2 = graph.AddJob([] {CLIENT_INFO("Job Finished"); });
-		
-		graph.AddDependency(job2, job);
+		auto finished = graph.AddJob([results, start]()
+			{
+				double checksum = 0.0;
 
+				for (double value : *results)
+					checksum += value;
+
+				auto end = std::chrono::steady_clock::now();
+
+				auto elapsed =
+					std::chrono::duration<double, std::milli>(
+						end - start
+					).count();
+
+				CLIENT_INFO("Execution Time: {} ms", elapsed);
+				CLIENT_INFO("Checksum: {}", checksum);
+			});
+
+		graph.AddDependency(finished, job);
 		graph.Submit();
-
 	}
 
 private:

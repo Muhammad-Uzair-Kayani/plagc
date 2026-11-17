@@ -5,31 +5,41 @@
 
 namespace plagc
 {
-
 	void Job::Finish(JobSystem& jobSystem)
 	{
-	
-		if (this->m_State == JobState::Terminated)
+		// This is called only when own execution/cancellation AND all children
+		// have finished. No other thread may access this Job afterward.
+		const bool cancelled =
+			m_State.load(std::memory_order_acquire) == JobState::Terminated ||
+			jobSystem.IsStopping();
+
+		for (Job* dependent : m_Continuations)
 		{
-			for (auto dependentJob : m_Continuations)
-				if (dependentJob->m_DependencyCount.fetch_sub(1, std::memory_order_acq_rel) == 1)
-				{
-					dependentJob->m_State = JobState::Terminated;
-					dependentJob->Finish(jobSystem);
-				}
+			// Every prerequisite reports exactly once. If ANY prerequisite
+			// was cancelled, the dependent must not run.
+			if (cancelled)
+				dependent->m_CancelRequested.store(true, std::memory_order_release);
+
+			if (dependent->m_DependencyCount.fetch_sub(1,
+				std::memory_order_acq_rel) == 1)
+			{
+				// Ready even if cancelled: OnDetach will perform cancellation
+				// without running its callable, then propagate to dependents.
+				jobSystem.PushJob(dependent);
+			}
 		}
 
-		for (auto dependentJob : m_Continuations)
-			if (dependentJob->m_DependencyCount.fetch_sub(1, std::memory_order_acq_rel) == 1)
-				jobSystem.PushJob(dependentJob);
+		// Save pointers BEFORE the object might be reclaimed.
+		Job* parent = m_Parent;
+		if (parent &&
+			parent->m_UnfinishedJobs.fetch_sub(1,
+				std::memory_order_acq_rel) == 1)
+		{
+			parent->Finish(jobSystem);
+		}
 
-		if (!m_Parent)
-			return;
-
-		if(m_Parent->m_UnfinishedJobs.fetch_sub(1, std::memory_order_acq_rel) == 1)
-				m_Parent->Finish(jobSystem);
-
-		JobAllocator::DeAllocate(this);
+		m_Finished.store(true, std::memory_order_release);
+		JobAllocator::DeAllocate(this); // Ends lifetime of *this*.
+		jobSystem.OnJobDestroyed();     // Must be AFTER destruction.
 	}
-
 }

@@ -10,7 +10,7 @@
   - [ ] Additional platforms
 - [x] Window creation and lifetime
 - [x] Central event system
-- [ ] Job System
+- [x] Job System
 - [ ] Rendering
 - [ ] ECS
 - [ ] Physics

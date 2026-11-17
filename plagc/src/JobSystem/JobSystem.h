@@ -5,10 +5,13 @@
 #include "JobAllocator.h"
 #include "Utility/MPMCQueue.h"
 
-#include <vector>
-#include <thread>
 #include <atomic>
-#include <exception>
+#include <cstddef>
+#include <cstdint>
+#include <stdexcept>
+#include <thread>
+#include <utility>
+#include <vector>
 
 namespace plagc
 {
@@ -17,202 +20,233 @@ namespace plagc
 	class ThreadWrapper
 	{
 	public:
+		ThreadWrapper(void(JobSystem::* func)(), JobSystem* instance)
+			: m_Thread(func, instance) {
+		}
 
-		
-		ThreadWrapper(void(JobSystem::*func)(), JobSystem* instance) : m_Thread(func, instance) {}
+		ThreadWrapper(ThreadWrapper&& other) noexcept
+			: m_Thread(std::move(other.m_Thread)) {
+		}
 
-		ThreadWrapper(ThreadWrapper&& other) noexcept : m_Thread(std::move(other.m_Thread)) {}
-
-		ThreadWrapper& operator=(ThreadWrapper&& other)
+		ThreadWrapper& operator=(ThreadWrapper&& other) noexcept
 		{
-			if (this == &other)
-				throw std::runtime_error("Unable To Copy Self Thread Wrapper");
-
-			if (m_Thread.joinable())
-				m_Thread.join();
-
-			m_Thread = std::move(other.m_Thread);
-
+			if (this != &other)
+			{
+				Join();
+				m_Thread = std::move(other.m_Thread);
+			}
 			return *this;
 		}
 
-		~ThreadWrapper()
+		ThreadWrapper(const ThreadWrapper&) = delete;
+		ThreadWrapper& operator=(const ThreadWrapper&) = delete;
+
+		void Join()
 		{
 			if (m_Thread.joinable())
 				m_Thread.join();
 		}
 
+		~ThreadWrapper() { Join(); }
+
 	private:
-
 		std::thread m_Thread;
-
 	};
 
 	class JobGraph
 	{
 	public:
-
-		JobGraph(JobSystem& jobSystem) : r_JobSystem(jobSystem) {}
-
-		template<typename F>
-		Job* AddJob(F&& fn)
-		{
-			auto job = JobAllocator::Allocate(std::move(fn));
-			m_JobList.push_back(job);
-			return job;
-		}
+		explicit JobGraph(JobSystem& jobSystem) : r_JobSystem(jobSystem) {}
+		~JobGraph();
+		JobGraph(const JobGraph&) = delete;
+		JobGraph& operator=(const JobGraph&) = delete;
 
 		template<typename F>
-		Job* ParallelFor(size_t start, size_t end, F&& fn);
+		Job* AddJob(F&& fn);
 
-		void AddDependency(Job*, Job*);
+		template<typename F>
+		Job* ParallelFor(std::size_t start, std::size_t end, F&& fn);
 
-		
+		void AddDependency(Job* dependent, Job* independent);
 		void Submit();
 
 	private:
-
 		std::vector<Job*> m_JobList;
 		JobSystem& r_JobSystem;
+		bool m_Submitted = false;
 	};
 
 	class JobSystem
 	{
 	public:
-
 		JobSystem();
+		~JobSystem();
 
-		void ShutDown(bool valid) { m_ShouldClose.store(valid, std::memory_order_release); }
+		JobSystem(const JobSystem&) = delete;
+		JobSystem& operator=(const JobSystem&) = delete;
+
+		// Blocks until all in-flight work and cancellation processing finishes.
+		// Must be invoked by the owning/main thread, not by a worker.
+		// External submission and graph-building must have stopped beforehand.
+		void ShutDown(bool valid = true);
+		bool IsStopping() const noexcept
+		{
+			return m_ShouldClose.load(std::memory_order_acquire);
+		}
+		std::uint64_t OutstandingJobs() const noexcept
+		{
+			return m_OutstandingJobs.load(std::memory_order_acquire);
+		}
+
+		template<typename F>
+		Job* CreateJob(F&& func, Job* parent = nullptr)
+		{
+			// Internal allocation: callable jobs may still spawn children while
+			// shutdown has been requested. The worker will cancel those children.
+			Job* job = JobAllocator::Allocate(std::forward<F>(func), parent);
+			m_OutstandingJobs.fetch_add(1, std::memory_order_release);
+			return job;
+		}
+
+		// Called AFTER deleting a job; necessary so shutdown never observes zero
+		// before the last destructor has finished.
+		void OnJobDestroyed() noexcept
+		{
+			m_OutstandingJobs.fetch_sub(1, std::memory_order_acq_rel);
+		}
 
 		template<typename F>
 		void Submit(F&& fn)
 		{
-			auto job = JobAllocator::Allocate(std::move(fn));
-			PushJob(job);
+			if (IsStopping())
+				throw std::runtime_error("JobSystem is shutting down");
+			PushJob(CreateJob(std::forward<F>(fn)));
 		}
 
 		template<typename F>
-		Job* ParallelFor(size_t start, size_t end, F&& fn)
+		Job* ParallelFor(std::size_t start, std::size_t end, F&& fn)
 		{
-			auto job = Parallel_For(start, end, std::forward<F>(fn));
-			
-			if(job)
-				PushJob(std::move(job));
-			
-			return job;
+			if (IsStopping())
+				throw std::runtime_error("JobSystem is shutting down");
+			Job* root = parallel_for(start, end, std::forward<F>(fn));
+			if (root)
+				PushJob(root);
+			return root; // DANGEROUS to dereference after asynchronous completion.
 		}
 
 		template<typename F>
-		Job* parallel_for(size_t start, size_t end, F&& fn);
+		Job* parallel_for(std::size_t start, std::size_t end, F&& fn);
+
+		template<typename F>
+		Job* DivideJob(std::size_t start, std::size_t end,
+			std::size_t batchSize, const F* conquer, Job* parent);
 
 		void PushJob(Job* job);
-
-		size_t GetPoolSize() const noexcept { return m_ThreadPool.size(); }
-
-		template<typename F>
-		Job* DivideJob(size_t start, size_t end, size_t batchSize, const F* p_Conquer, Job* job);
+		std::size_t GetPoolSize() const noexcept { return m_ThreadPool.size(); }
 
 	private:
-
 		void OnDetach(Job* job);
-
 		void Try_Work();
 
-	private:
-
-		MPMCQueue<Job*> m_JobQueue{4096};
+		// Keep this queue for this shutdown milestone. Per-worker deques are NOT
+		// integrated until the next milestone.
+		MPMCQueue<Job*> m_JobQueue{ 4096 };
 		std::vector<ThreadWrapper> m_ThreadPool;
 		std::atomic<bool> m_ShouldClose{ false };
-
+		std::atomic<std::uint64_t> m_OutstandingJobs{ 0 };
 	};
 
 	template<typename F>
-	Job* plagc::JobGraph::ParallelFor(size_t start, size_t end, F&& fn)
+	Job* JobGraph::AddJob(F&& fn)
 	{
-
-		auto job = r_JobSystem.parallel_for(start, end, std::forward<F>(fn));
-
-		if(job)
-			m_JobList.push_back(job);
-
+		if (m_Submitted || r_JobSystem.IsStopping())
+			throw std::runtime_error("Cannot add jobs to submitted/stopping graph");
+		Job* job = r_JobSystem.CreateJob(std::forward<F>(fn));
+		try { m_JobList.push_back(job); }
+		catch (...) { JobAllocator::DeAllocate(job); r_JobSystem.OnJobDestroyed(); throw; }
 		return job;
 	}
 
+	template<typename F>
+	Job* JobGraph::ParallelFor(std::size_t start, std::size_t end, F&& fn)
+	{
+		if (m_Submitted || r_JobSystem.IsStopping())
+			throw std::runtime_error("Cannot add jobs to submitted/stopping graph");
+		Job* root = r_JobSystem.parallel_for(start, end, std::forward<F>(fn));
+		if (!root)
+			return nullptr;
+		try { m_JobList.push_back(root); }
+		catch (...) { JobAllocator::DeAllocate(root); r_JobSystem.OnJobDestroyed(); throw; }
+		return root;
+	}
 
 	template<typename F>
-	Job* plagc::JobSystem::parallel_for(size_t start, size_t end, F&& fn)
+	Job* JobSystem::parallel_for(std::size_t start, std::size_t end, F&& fn)
 	{
-
 		if (start >= end)
 			return nullptr;
+		const std::size_t partitions = m_ThreadPool.size();
+		const std::size_t batchSize = (end - start + partitions - 1) / partitions;
 
-		auto partitions = m_ThreadPool.size();
-
-		//Excat partitions as number of Workers
-		//Only rounds up if one partition is required extra
-		auto batchSize = (end - start + partitions - 1) / partitions;
-
-		auto root = JobAllocator::Allocate([] {}, nullptr);
-
-		auto task = [this, start, end, batchSize, Conquer = std::forward<F>(fn), root]
+		Job* root = CreateJob([] {}, nullptr);
+		auto task = [this, start, end, batchSize,
+			Conquer = std::forward<F>(fn), root]()
 			{
-				//Divide
 				if (end - start > batchSize)
 				{
-
-					auto mid = (start + end) / 2;
-
-					//Left Side Divide
-					Job* left = DivideJob(start, mid, batchSize, &Conquer, root);
-					//Right Side Divide
-					Job* right = DivideJob(mid, end, batchSize, &Conquer, root);
-
+					const auto mid = start + (end - start) / 2;
+					DivideJob(start, mid, batchSize, &Conquer, root);
+					DivideJob(mid, end, batchSize, &Conquer, root);
 				}
-				//Conquer
 				else
 				{
-					for (size_t i = start; i < end; ++i)
+					for (std::size_t i = start; i < end; ++i)
 						Conquer(i);
 				}
 			};
-
-		*root = (std::move(task));
-
+		try { *root = std::move(task); }
+		catch (...)
+		{
+			JobAllocator::DeAllocate(root);
+			OnJobDestroyed();
+			throw;
+		}
 		return root;
 	}
 
 	template<typename F>
-	Job* plagc::JobSystem::DivideJob(size_t start, size_t end, size_t batchSize, const F* p_Conquer, Job* parent)
+	Job* JobSystem::DivideJob(std::size_t start, std::size_t end,
+		std::size_t batchSize, const F* conquer, Job* parent)
 	{
-		
-		//Initializing Job with empty lambda
-		auto root = JobAllocator::Allocate([] {}, parent);
-
-		*root = [this, start, end, batchSize, p_Conquer, root]
-			{
-				//Divide
-				if (end - start > batchSize)
+		// An active parent can still create children as it finishes during
+		// shutdown; those children are counted and will be cancelled in OnDetach.
+		Job* child = CreateJob([] {}, parent);
+		try
+		{
+			*child = [this, start, end, batchSize, conquer, child]()
 				{
-
-					auto mid = (start + end) / 2;
-
-					//Left Side Divide
-					Job* left = DivideJob(start, mid, batchSize, p_Conquer, root);
-					//Right Side Divide
-					Job* right = DivideJob(mid, end, batchSize, p_Conquer, root);
-
-				}
-				//Conquer
-				else
-				{
-					for (size_t i = start; i < end; ++i)
-						(*p_Conquer)(i);
-				}
-			};
-
-		PushJob(std::move(root));
-
-		return root;
+					if (end - start > batchSize)
+					{
+						const auto mid = start + (end - start) / 2;
+						DivideJob(start, mid, batchSize, conquer, child);
+						DivideJob(mid, end, batchSize, conquer, child);
+					}
+					else
+					{
+						for (std::size_t i = start; i < end; ++i)
+							(*conquer)(i);
+					}
+				};
+		}
+		catch (...)
+		{
+			// Child was never published. Undo its parent registration.
+			parent->m_UnfinishedJobs.fetch_sub(1, std::memory_order_acq_rel);
+			JobAllocator::DeAllocate(child);
+			OnJobDestroyed();
+			throw;
+		}
+		PushJob(child);
+		return child;
 	}
-
 }
