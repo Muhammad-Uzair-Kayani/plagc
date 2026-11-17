@@ -6,7 +6,7 @@ namespace plagc
 	
 
 
-	void JobAllocator::Dellocate(Job* job)
+	void JobAllocator::DeAllocate(Job* job)
 	{
 		delete job;
 	}

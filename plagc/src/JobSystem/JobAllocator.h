@@ -7,20 +7,20 @@ namespace plagc
 	{
 	public:
 
-		template<typename F>
-		Job* Allocate(F&& func);
+		template<typename F, typename...Args>
+		static Job* Allocate(F&& func, Args&&...args);
 
-		void Dellocate(Job* job);
+		static void DeAllocate(Job* job);
 
 	private:
 
 
 	};
 
-	template<typename F>
-	Job* plagc::JobAllocator::Allocate(F&& func)
+	template<typename F, typename...Args>
+	Job* plagc::JobAllocator::Allocate(F&& func, Args&&...args)
 	{
-		return new Job(std::forward<F>(func));
+		return new Job(std::forward<F>(func), std::forward<Args>(args)...);
 	}
 
 }

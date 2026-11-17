@@ -2,18 +2,35 @@
 #include "FunctionWrapper.h"
 
 #include <vector>
+#include <new>
+#include <atomic>
 
 namespace plagc
 {
+	enum class JobState
+	{
+		Waiting,
+		Ready,
+		Running,
+		Completed,
+		Terminated
+	};
+
 	class Job
 	{
 	public:
 
 		template<typename F>
-		Job(F&& func) noexcept : m_Function(std::forward<F>(func)) {}
+		Job(F&& func, Job* parent = nullptr) noexcept : m_Function(std::forward<F>(func)), m_Parent(parent) 
+		{
+			m_UnfinishedJobs.fetch_add(1, std::memory_order_acq_rel);
+
+			if (m_Parent)
+				m_Parent->m_UnfinishedJobs.fetch_add(1, std::memory_order_acq_rel);
+		}
 
 		template<typename F>
-		Job& operator=(F&& func) noexcept
+		Job& operator=(F&& func)
 		{
 			m_Function = std::forward<F>(func);
 			return *this;
@@ -32,18 +49,33 @@ namespace plagc
 			m_Continuations.push_back(_job);
 		}
 
-		void Execute()
+		const std::vector<Job*>& GetContinuations() const noexcept
 		{
-			m_Function();
+			return m_Continuations;
 		}
 
-	private:
+		void Execute()
+		{
+			m_State = JobState::Running;
+			m_Function();
+			m_State = JobState::Completed;
+		}
+
+		void Finish(JobSystem& jobsystem);
+
+	public:
 
 		FuncWrapper m_Function;
+		
 		std::vector<Job*> m_Continuations;
-		Job* parent = nullptr;
-		uint32_t m_DependencyCount = 0;
-		uint32_t m_UnfinishedJobs = 0;
+		
+		Job* m_Parent = nullptr;
+
+		JobState m_State = JobState::Waiting;
+
+		alignas(std::hardware_destructive_interference_size)std::atomic<uint32_t> m_DependencyCount{ 0 };
+		alignas(std::hardware_destructive_interference_size)std::atomic<uint32_t> m_UnfinishedJobs{ 0 };
+		alignas(std::hardware_destructive_interference_size)std::atomic<uint32_t> m_Finished{ false };
 	};
 
 }

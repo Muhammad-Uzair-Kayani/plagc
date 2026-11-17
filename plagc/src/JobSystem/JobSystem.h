@@ -2,6 +2,7 @@
 
 #include "Core/Core.h"
 #include "Job.h"
+#include "JobAllocator.h"
 #include "Utility/MPMCQueue.h"
 
 #include <vector>
@@ -51,13 +52,25 @@ namespace plagc
 	{
 	public:
 
-		JobGraph() = default;
+		JobGraph(JobSystem& jobSystem) : r_JobSystem(jobSystem) {}
+
+		template<typename F>
+		Job* AddJob(F&& fn)
+		{
+			auto job = JobAllocator::Allocate(std::move(fn));
+			m_JobList.push_back(job);
+			return job;
+		}
 
 		void AddDependency(Job*, Job*);
 
+		
+		void Submit();
+
 	private:
 
-
+		std::vector<Job*> m_JobList;
+		JobSystem& r_JobSystem;
 	};
 
 	class JobSystem
@@ -68,12 +81,71 @@ namespace plagc
 
 		void ShutDown(bool valid) { m_ShouldClose.store(valid, std::memory_order_release); }
 
-		void Submit(Job* _job);
+		template<typename F>
+		void Submit(F&& fn)
+		{
+			auto job = JobAllocator::Allocate(std::move(fn));
+			m_JobQueue.EnQueue(std::move(job));
+		}
 
+		template<typename F>
+		Job* Parallel_For(size_t start, size_t end, F&& fn)
+		{
+			
+			if (start >= end)
+				return nullptr;
+
+			auto partitions = m_ThreadPool.size();
+
+			//Excat partitions as number of Workers
+			//Only rounds up if one partition is required extra
+			auto batchSize = (end - start + partitions - 1) / partitions;
+			
+			auto root = JobAllocator::Allocate([] {}, nullptr);
+
+			auto task = [this, start, end, batchSize, Conquer = std::forward<F>(fn), root]
+				{
+					//Divide
+					if (end - start > batchSize)
+					{
+
+						auto mid = (start + end) / 2;
+
+						//Left Side Divide
+						Job* left = DivideJob(start, mid, batchSize, &Conquer, root);
+						//Right Side Divide
+						Job* right = DivideJob(mid, end, batchSize, &Conquer, root);
+
+					}
+					//Conquer
+					else
+					{
+						for (size_t i = start; i < end; ++i)
+							Conquer(i);
+					}
+				};
+
+			*root = (std::move(task));
+
+			PushJob(std::move(root));
+
+			return root;
+		}
+
+		void PushJob(Job* job)
+		{
+			job->m_State = JobState::Ready;
+			m_JobQueue.EnQueue(std::move(job));
+		}
 
 	private:
 
+		void OnDetach(Job* job);
+
 		void Try_Work();
+
+		template<typename F>
+		Job* DivideJob(size_t start, size_t end, size_t batchSize, const F* p_Conquer, Job* job);
 
 	private:
 
@@ -82,4 +154,39 @@ namespace plagc
 		std::atomic<bool> m_ShouldClose{ false };
 
 	};
+
+	template<typename F>
+	Job* plagc::JobSystem::DivideJob(size_t start, size_t end, size_t batchSize, const F* p_Conquer, Job* parent)
+	{
+		
+		//Initializing Job with empty lambda
+		auto root = JobAllocator::Allocate([] {}, parent);
+
+		*root = [this, start, end, batchSize, p_Conquer, root]
+			{
+				//Divide
+				if (end - start > batchSize)
+				{
+
+					auto mid = (start + end) / 2;
+
+					//Left Side Divide
+					Job* left = DivideJob(start, mid, batchSize, p_Conquer, root);
+					//Right Side Divide
+					Job* right = DivideJob(mid, end, batchSize, p_Conquer, root);
+
+				}
+				//Conquer
+				else
+				{
+					for (size_t i = start; i < end; ++i)
+						(*p_Conquer)(i);
+				}
+			};
+
+		PushJob(std::move(root));
+
+		return root;
+	}
+
 }

@@ -5,6 +5,8 @@
 #include <vector>
 #include <chrono>
 
+
+
 class SandboxApp : public plagc::Application
 {
 public:
@@ -37,11 +39,10 @@ public:
 
 	void StressTest()
 	{
-		auto fn = [] { CLIENT_INFO("Job Executed;"); };
-
-		auto job = m_Allocator.Allocate(std::move(fn));
-
-		m_JobSystem.Submit(job);
+		auto job = m_JobSystem.Parallel_For(0, 1000000, [](size_t i)
+			{
+				CLIENT_INFO("Executed Job A with counter: {0}", i);
+			});
 	}
 
 private:

@@ -51,25 +51,29 @@ namespace plagc
 
 		template<JobCallable<FuncWrapper> F>
 		FuncWrapper(F&& f)
-			: pImpl(MakeUnique<Impl<std::decay_t<F>>>(std::forward<F>(f)))
+			: pImpl(MakeUnique<Impl<std::decay_t<F>>>(
+				std::forward<F>(f)))
 		{
 		}
 
-		template<typename F>
-		FuncWrapper(FuncWrapper&& other) noexcept : pImpl(std::forward<F>(other.pImpl)) {}
-
-		FuncWrapper& operator=(FuncWrapper&& other) noexcept
+		template<JobCallable<FuncWrapper> F>
+		FuncWrapper& operator=(F&& f)
 		{
-			pImpl = std::move(other.pImpl);
+			pImpl = MakeUnique<Impl<std::decay_t<F>>>(std::forward<F>(f));
 			return *this;
 		}
 
+		FuncWrapper(FuncWrapper&& other) noexcept = default;
+
+		FuncWrapper& operator=(FuncWrapper&& other) noexcept = default;
+
 		FuncWrapper() = default;
 
-		template<typename F>
-		FuncWrapper(const F& f) = delete;
-		FuncWrapper(const FuncWrapper& other) = delete;
+		FuncWrapper(const FuncWrapper&) = delete;
 
+		FuncWrapper& operator=(const FuncWrapper&) = delete;
+
+		
 		void operator() ()
 		{
 			pImpl->call();

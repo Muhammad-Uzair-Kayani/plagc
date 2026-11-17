@@ -17,10 +17,20 @@ uint32_t WorkerCount()
 namespace plagc
 {
 	
-	void JobGraph::AddDependency(Job* A, Job* B)
+	void JobGraph::AddDependency(Job* dependent, Job* independent)
 	{
-		//B is dependent of A, A => Will Decrease dependency count of B
-		A->AddContinuation(B);
+		//1 is dependent of 2, 2 => Will Decrease dependency count of 1
+		independent->AddContinuation(dependent);
+		//Increase the dependency count of B
+		uint32_t count = dependent->m_DependencyCount.load(std::memory_order_relaxed);
+		dependent->m_DependencyCount.store(count + 1, std::memory_order_relaxed);
+	}
+
+	void JobGraph::Submit()
+	{
+		for (auto& job : m_JobList)
+			if (job->m_DependencyCount.load(std::memory_order_relaxed) == 0)
+				r_JobSystem.PushJob(job);
 	}
 
 	JobSystem::JobSystem()
@@ -33,9 +43,24 @@ namespace plagc
 
 	}
 
-	void JobSystem::Submit(Job* _job)
+	void JobSystem::OnDetach(Job* job)
 	{
-		m_JobQueue.EnQueue(std::move(_job));
+		if (m_ShouldClose.load(std::memory_order_acquire))
+		{
+
+			if (job->m_UnfinishedJobs.fetch_sub(1, std::memory_order_acq_rel) == 1)
+			{
+				job->m_State = JobState::Terminated;
+				job->Finish(*this);
+			}
+
+			return;
+		}
+
+		job->Execute();
+
+		if (job->m_UnfinishedJobs.fetch_sub(1, std::memory_order_acq_rel) == 1)
+			job->Finish(*this);
 	}
 
 	void JobSystem::Try_Work()
@@ -49,7 +74,7 @@ namespace plagc
 			Job* job;
 			if (m_JobQueue.Try_Pop(job))
 			{
-				job->Execute();
+				OnDetach(job);
 			}
 			else
 			{
