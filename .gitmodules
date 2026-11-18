@@ -4,3 +4,6 @@
 [submodule "third-party/spdlog"]
 	path = third-party/spdlog
 	url = https://github.com/gabime/spdlog.git
+[submodule "third-party/ogre-next"]
+	path = third-party/ogre-next
+	url = https://github.com/OGRECave/ogre-next.git
