@@ -1,4 +1,6 @@
 #pragma once
+#include "Contracts/Window.h"
+
 namespace plagc
 {
 
@@ -6,21 +8,34 @@ namespace plagc
 	{
 	public:
 
-		Renderer() = default;
-
 		virtual ~Renderer() = default;
 
 		virtual void OnUpdate() = 0;
 
-		static Owner<Renderer> Init();
-
 	protected:
 
-
+		Renderer() = default;
 
 	private:
 
-		static bool m_InitDone;
+	};
+
+
+	class RendererBuilder
+	{
+	public:
+
+		RendererBuilder& WindowHandle(Window* window) { r_Window = window; return *this; }
+
+		Owner<Renderer> Build();
+
+	private:
+
+		Owner<Renderer> BuildRenderer();
+
+	private:
+
+		Window* r_Window;
 
 	};
 

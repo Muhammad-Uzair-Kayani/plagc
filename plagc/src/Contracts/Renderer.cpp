@@ -22,17 +22,12 @@ enum class RenderSystem
 namespace plagc
 {
 
-	bool Renderer::m_InitDone = false;
-
-	Owner<Renderer> Renderer::Init()
+	Owner<Renderer> RendererBuilder::BuildRenderer()
 	{
-		if(m_InitDone) throw std::runtime_error("Renderer Cannot Re initialized");
-
 		switch (GET_RENDERER())
 		{
 		case RenderSystem::Ogre_Next:
-			return Owner<Renderer>(new OgreRenderer());
-			m_InitDone = true;
+			return Owner<Renderer>(new OgreRenderer(r_Window));
 			break;
 
 		case RenderSystem::plagc:
@@ -43,6 +38,12 @@ namespace plagc
 			throw std::runtime_error("Platform Not Supported Yet");
 			break;
 		}
+	}
+
+	Owner<Renderer> RendererBuilder::Build()
+	{
+		if (!r_Window) throw std::exception("User Window Pointer is required to Create Renderer");
+		return BuildRenderer();
 	}
 
 }

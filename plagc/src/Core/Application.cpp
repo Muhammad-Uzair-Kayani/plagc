@@ -27,11 +27,13 @@ namespace plagc
 		GET_RENDERING_API() == RenderingAPI::DirectX ? CORE_DEBUG("PLATFROM DirectX") : CORE_DEBUG("None");
 		
 		WindowBuilder windowBuilder;
-		m_Window = windowBuilder.Width(1280).Height(720).Name("plagc").Vsync(true).CallBack(
+		m_Window = windowBuilder.Width(1280).Height(720).Name("plagc").Vsync(false).FullScreen(false).CallBack(
 			std::bind(&EventBus::PushEvent, m_EventBus.get(), std::placeholders::_1)
 		).Build();
 		
-		m_Renderer = Renderer::Init();
+
+		RendererBuilder rendererBuilder;
+		m_Renderer = rendererBuilder.WindowHandle(m_Window.get()).Build();
 
 	}
 

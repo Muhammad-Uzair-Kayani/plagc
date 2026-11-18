@@ -9,15 +9,17 @@
 namespace plagc
 {
 
-	WindowsWindow::WindowsWindow(uint16_t width, uint16_t height, const std::string& name, bool vsync,
+	WindowsWindow::WindowsWindow(uint16_t width, uint16_t height, const std::string& name, bool vsync, bool fullscreen,
 		std::function<bool(Owner<Event>)> fn)
 	{
 		m_pimpl = MakeUnique<WindowData>();
+		m_pimpl->Name = name;
 		m_pimpl->Width = width;
 		m_pimpl->Height = height;
 		m_pimpl->Vsync = vsync;
+		m_pimpl->Fullscreen = fullscreen;
 		m_pimpl->PublishEvent = fn;
-		Initialize(name);
+		Initialize();
 	}
 
 	WindowsWindow::~WindowsWindow() noexcept
@@ -45,7 +47,7 @@ namespace plagc
 		return m_pimpl->Vsync;
 	}
 
-	void WindowsWindow::Initialize(const std::string& name)
+	void WindowsWindow::Initialize()
 	{
 
 		if (!glfwInit())
@@ -56,8 +58,29 @@ namespace plagc
 
 		glfwWindowHint(GLFW_NO_API, GLFW_CLIENT_API);
 
-		m_Window = glfwCreateWindow(static_cast<int>(m_pimpl->Width),
-			static_cast<int>(m_pimpl->Height), name.c_str(), nullptr, nullptr);
+		if (!m_pimpl->Fullscreen)
+			m_Window = glfwCreateWindow(static_cast<int>(m_pimpl->Width),
+				static_cast<int>(m_pimpl->Height), m_pimpl->Name.c_str(), nullptr, nullptr);
+		
+		else
+		{
+			GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
+			const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
+
+			if (!mode)
+				throw std::runtime_error("GLFW Failed to Get monitor Mode");
+
+			m_Window = glfwCreateWindow(
+				mode->width,
+				mode->height,
+				m_pimpl->Name.c_str(),
+				primaryMonitor, // Pass monitor pointer for fullscreen (nullptr = windowed)
+				nullptr
+			);
+
+			m_pimpl->Width = mode->width;
+			m_pimpl->Height = mode->height;
+		}
 
 		if (!m_Window)
 		{

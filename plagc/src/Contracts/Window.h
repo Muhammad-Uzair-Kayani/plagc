@@ -37,6 +37,7 @@ namespace plagc
 		WindowBuilder& Height(uint16_t height) { _height = MakeUnique<uint16_t>(height); return *this; }
 		WindowBuilder& Name(const std::string& name) { _name = MakeUnique<std::string>(name); return *this; }
 		WindowBuilder& Vsync(bool vsync) { _vsync = MakeUnique<bool>(vsync); return *this; }
+		WindowBuilder& FullScreen(bool fullscreen) { _fullscreen = fullscreen; return *this; }
 		WindowBuilder& CallBack(std::function<bool(Owner<Event>)> fn) { _fn = fn; return *this; }
 		Owner<Window> Build();
 
@@ -50,6 +51,7 @@ namespace plagc
 		Owner<uint16_t> _height;
 		Owner<std::string> _name;
 		Owner<bool> _vsync;
+		bool _fullscreen = false;
 		std::function<bool(Owner<Event>)> _fn;
 
 	};

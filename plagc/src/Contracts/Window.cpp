@@ -12,11 +12,11 @@ namespace plagc
 		switch (GET_PLATFROM())
 		{
 		case Platform::Windows:
-			return Owner<Window>(new WindowsWindow(*_width.get(), *_height.get(), *_name.get(), *_vsync.get(), _fn));
+			return Owner<Window>(new WindowsWindow(*_width.get(), *_height.get(), *_name.get(), *_vsync.get(), _fullscreen, _fn));
 			break;
 
 		case Platform::Linux:
-			return Owner<Window>(new WindowsWindow(*_width.get(), *_height.get(), *_name.get(), *_vsync.get(), _fn));
+			return Owner<Window>(new WindowsWindow(*_width.get(), *_height.get(), *_name.get(), *_vsync.get(), _fullscreen, _fn));
 			break;
 
 

@@ -4,14 +4,30 @@
 #include "Core/Config.h"
 #include "Core/Core.h"
 
+#include <string>
+
 #include <OgreRenderSystem.h>
 #include <OgreAbiUtils.h>
 #include <OgreVulkanPlugin.h>
 
+#ifdef _WIN32 
+
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include "Platforms/Windows/WindowsWindow.h"
+
+#elif LINUX
+
+#define GLFW_EXPOSE_NATIVE_X11
+
+#endif
+
+#include <GLFW/glfw3native.h>
+
+
 namespace plagc
 {
 
-	OgreRenderer::OgreRenderer()
+	OgreRenderer::OgreRenderer(Window* window)
 	{
 
 		const Ogre::AbiCookie cookie = Ogre::generateAbiCookie();
@@ -22,10 +38,12 @@ namespace plagc
 
 		m_Root->installPlugin(m_Plugin.get(), nullptr);
 
-		CORE_DEBUG("Avaliable Rendering Systems");
-		for (auto renderSystem : m_Root->getAvailableRenderers())
-			CORE_TRACE(renderSystem->getName());
+		Init(window);
+	}
 
+	OgreRenderer::~OgreRenderer()
+	{
+		Shutdown();
 	}
 
 	void OgreRenderer::OnUpdate()
@@ -33,14 +51,82 @@ namespace plagc
 
 	}
 
-	void OgreRenderer::Init()
+	void OgreRenderer::Init(Window* window)
 	{
+
+		if (!window)
+			throw std::runtime_error("Window is Required to start renderer");
+
+		Ogre::RenderSystem* renderSystem;
+
+		switch (GET_RENDERING_API())
+		{
+		case RenderingAPI::Vulkan:
+			renderSystem = m_Root->getRenderSystemByName("Vulkan Rendering Subsystem");
+			break;
+
+		default:
+			throw std::runtime_error("No Rendering Backend found");
+			break;
+		}
+
+		if (!renderSystem)
+			throw std::runtime_error("Rendering Backend Missing");
+
+		CORE_DEBUG("{0} Backend Initialized", renderSystem->getName());
+
+		m_Root->setRenderSystem(renderSystem);
+
+		m_Root->initialise(false);
+
+		Ogre::NameValuePairList paras;
+
+		switch (GET_PLATFROM())
+		{
+		case Platform::Windows:
+		{
+			auto windowsWindow = dynamic_cast<WindowsWindow*>(window);
+
+			HWND windowHandle = glfwGetWin32Window(windowsWindow->GetNativeWindow());
+
+			if (!windowHandle)
+				throw std::runtime_error("Failed to extract WindowsWindow Handler");
+
+			auto handleValue = reinterpret_cast<std::uintptr_t>(windowHandle);
+
+			auto OgreParameterVal = std::to_string(handleValue);
+
+			paras["externalWindowHandle"] = OgreParameterVal;
+
+			auto windowsWindowData = windowsWindow->GetWindowsWindowData();
+
+			m_Window = m_Root->createRenderWindow(
+				windowsWindowData->Name,
+				windowsWindowData->Width,
+				windowsWindowData->Height,
+				windowsWindowData->Fullscreen,
+				&paras
+			);
+
+			break;
+		}
+
+		default:
+
+			throw std::runtime_error("Platform Not Supported Yet By Ogre");
+
+			break;
+		}
+
+		if (!m_Window)
+			throw std::runtime_error("Ogre unable to register back end to Native Window");
+
 
 	}
 
 	void OgreRenderer::Shutdown()
 	{
-		m_Root->uninstallPlugin(m_Plugin.get());
+		
 	}
 
 }
