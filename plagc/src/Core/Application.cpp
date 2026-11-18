@@ -78,6 +78,7 @@ namespace plagc
 			OnUpdate();
 			m_Window->OnUpdate();
 			m_EventBus->OnUpdate();
+			m_Renderer->OnUpdate();
 		}
 	}
 }

@@ -29,35 +29,13 @@ namespace plagc
 
 	OgreRenderer::OgreRenderer(Window* window)
 	{
-
 		const Ogre::AbiCookie cookie = Ogre::generateAbiCookie();
 
 		m_Root = MakeUnique<Ogre::Root>(&cookie, "", "", "ogre.log", "plagc");
-
 		m_Plugin = MakeUnique<Ogre::VulkanPlugin>();
-
 		m_Root->installPlugin(m_Plugin.get(), nullptr);
 
-		Init(window);
-	}
-
-	OgreRenderer::~OgreRenderer()
-	{
-		Shutdown();
-	}
-
-	void OgreRenderer::OnUpdate()
-	{
-
-	}
-
-	void OgreRenderer::Init(Window* window)
-	{
-
-		if (!window)
-			throw std::runtime_error("Window is Required to start renderer");
-
-		Ogre::RenderSystem* renderSystem;
+		Ogre::RenderSystem* renderSystem = nullptr;
 
 		switch (GET_RENDERING_API())
 		{
@@ -67,7 +45,6 @@ namespace plagc
 
 		default:
 			throw std::runtime_error("No Rendering Backend found");
-			break;
 		}
 
 		if (!renderSystem)
@@ -76,8 +53,44 @@ namespace plagc
 		CORE_DEBUG("{0} Backend Initialized", renderSystem->getName());
 
 		m_Root->setRenderSystem(renderSystem);
-
 		m_Root->initialise(false);
+
+		Init(window);
+
+		// OGRE owns these objects — store as non-owning raw pointers
+		m_SceneManager = m_Root->createSceneManager(Ogre::ST_GENERIC, 1);
+
+		m_Camera = m_SceneManager->createCamera("TestCamera");
+		
+		m_CompositorManager2 = m_Root->getCompositorManager2();
+
+		const Ogre::String workspaceName("MinimalClearWorkspace");
+
+		m_CompositorManager2->addWorkspace(
+			m_SceneManager,
+			m_Window->getTexture(),
+			m_Camera,
+			workspaceName,
+			true
+		);
+	}
+
+
+	OgreRenderer::~OgreRenderer()
+	{
+		Shutdown();
+	}
+
+	void OgreRenderer::OnUpdate()
+	{
+		m_Root->renderOneFrame();
+	}
+
+	void OgreRenderer::Init(Window* window)
+	{
+
+		if (!window)
+			throw std::runtime_error("Window is Required to start renderer");
 
 		Ogre::NameValuePairList paras;
 

@@ -56,7 +56,7 @@ namespace plagc
 			throw std::runtime_error("GLFW Initialization Failed");
 		}
 
-		glfwWindowHint(GLFW_NO_API, GLFW_CLIENT_API);
+		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
 		if (!m_pimpl->Fullscreen)
 			m_Window = glfwCreateWindow(static_cast<int>(m_pimpl->Width),
@@ -89,8 +89,6 @@ namespace plagc
 		}
 
 		CORE_DEBUG("WINDOW CREATED SUCESSFULLY");
-
-		m_pimpl->Vsync ? glfwSwapInterval(1) : glfwSwapInterval(0);
 
 		glfwSetWindowUserPointer(m_Window, m_pimpl.get());
 

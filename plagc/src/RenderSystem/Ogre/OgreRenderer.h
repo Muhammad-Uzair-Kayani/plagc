@@ -5,6 +5,9 @@
 #include <OgreRoot.h>
 #include <OgrePlugin.h>
 #include <OgreWindow.h>
+#include <OgreSceneManager.h>
+#include <OgreCamera.h>
+#include <Compositor/OgreCompositorManager2.h>
 
 namespace plagc
 {
@@ -34,6 +37,9 @@ namespace plagc
 		Owner<Ogre::Plugin> m_Plugin;
 		Owner<Ogre::Root> m_Root;
 		Ogre::Window* m_Window;
+		Ogre::SceneManager* m_SceneManager;
+		Ogre::Camera* m_Camera;
+		Ogre::CompositorManager2* m_CompositorManager2;
 
 	};
 
