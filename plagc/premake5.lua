@@ -37,9 +37,13 @@ project "plagc"
     	path.join(SPDLOG_DIR, "include")
     }
 
+    useOgreHeaders()
+    linkOgreVulkan()
+
     defines {
         "GLFW_INCLUDE_NONE",
-        "SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE"
+        "SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE",
+	"OGRE_NEXT"
     }
 
     enablepch "On"

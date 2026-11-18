@@ -7,3 +7,9 @@
 [submodule "third-party/ogre-next"]
 	path = third-party/ogre-next
 	url = https://github.com/OGRECave/ogre-next.git
+[submodule "third-party/ogre-next"]
+    path = third-party/ogre-next
+    url = https://github.com/OGRECave/ogre-next.git
+[submodule "third-party/rapidjson"]
+	path = third-party/rapidjson
+	url = https://github.com/Tencent/rapidjson.git

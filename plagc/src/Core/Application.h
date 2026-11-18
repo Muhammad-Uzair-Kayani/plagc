@@ -5,6 +5,7 @@
 #include "Contracts/Window.h"
 #include "EventSystem/WindowEvent.h"
 #include "JobSystem/JobSystem.h"
+#include "RenderSystem/Ogre/OgreRenderer.h"
 
 namespace plagc
 {
@@ -37,6 +38,7 @@ namespace plagc
 		SubscriptionHandler<WindowCloseRequestEvent> m_WindowCloseReqHandle;
 		SubscriptionHandler<WindowClosedEvent> m_WindowClosedHandle;
 		Owner<Window> m_Window;
+		Owner<Renderer> m_Renderer;
 		
 	protected:
 

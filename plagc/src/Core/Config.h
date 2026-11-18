@@ -12,6 +12,7 @@ enum class Platform
 enum class RenderingAPI
 {
 	None = 0,
+	Ogre,
 	DirectX,
 	Vulkan,
 	OpenGL,
@@ -21,7 +22,7 @@ enum class RenderingAPI
 #ifdef _WIN32
 
 #define SET_PLATFROM() ::Platform::Windows
-#define SET_API() ::RenderingAPI::DirectX
+#define SET_API() ::RenderingAPI::Vulkan
 
 #elif LINUX
 
@@ -38,7 +39,7 @@ enum class RenderingAPI
 #define SET_PLATFROM() ::Platform::MacOS
 #define SET_API() ::RenderingAPI::Metal
 
-#endif // _WIN32
+#endif // Platform Selection
 
 struct Config
 {

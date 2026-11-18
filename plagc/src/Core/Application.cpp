@@ -31,6 +31,8 @@ namespace plagc
 			std::bind(&EventBus::PushEvent, m_EventBus.get(), std::placeholders::_1)
 		).Build();
 		
+		m_Renderer = Renderer::Init();
+
 	}
 
 	void Application::Shutdown()

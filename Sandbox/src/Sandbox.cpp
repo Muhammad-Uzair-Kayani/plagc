@@ -5,8 +5,6 @@
 #include <vector>
 #include <chrono>
 
-
-
 class SandboxApp : public plagc::Application
 {
 public:
@@ -15,6 +13,7 @@ public:
 	{
 		CLIENT_INFO("Sandbox Initialized");
 		m_KeyEventHandle = m_EventBus->Subscribe<plagc::KeyPressedEvent>(std::bind(&SandboxApp::OnKeyPressed, this, std::placeholders::_1));
+
 		StressTest();
 	}
 
@@ -37,11 +36,10 @@ public:
 		
 	}
 
-
 	void StressTest()
 	{
-		constexpr size_t count = 1'100'000;
-		constexpr int iterations = 5000;
+		constexpr size_t count = 11'000;
+		constexpr int iterations = 5'000;
 
 		auto parallelResults =
 			std::make_shared<std::vector<double>>(count);

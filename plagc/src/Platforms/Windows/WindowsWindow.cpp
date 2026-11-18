@@ -54,6 +54,8 @@ namespace plagc
 			throw std::runtime_error("GLFW Initialization Failed");
 		}
 
+		glfwWindowHint(GLFW_NO_API, GLFW_CLIENT_API);
+
 		m_Window = glfwCreateWindow(static_cast<int>(m_pimpl->Width),
 			static_cast<int>(m_pimpl->Height), name.c_str(), nullptr, nullptr);
 

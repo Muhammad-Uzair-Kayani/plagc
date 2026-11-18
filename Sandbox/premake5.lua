@@ -29,6 +29,8 @@ project "Sandbox"
         path.join(SPDLOG_DIR, "include")
     }
 
+    useOgreHeaders()
+
     defines {
         "GLFW_INCLUDE_NONE",
         "SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE"
@@ -36,6 +38,8 @@ project "Sandbox"
     enablepch "Off"
 
     links { "plagc", "GLFW" }
+
+    linkOgreVulkan()
 
     filter "action:vs*"
         buildoptions { "/utf-8" }

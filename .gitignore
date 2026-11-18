@@ -61,6 +61,7 @@ Desktop.ini
 
 #Defulat Scripts:
 /GitPushMain.bat
+/BuildOgreVulkan.bat
 
 # Note: do NOT ignore all *.exe, *.lib, or *.dll.
 # vendor/premake/premake5.exe and checked-in vendor binaries may be required.
