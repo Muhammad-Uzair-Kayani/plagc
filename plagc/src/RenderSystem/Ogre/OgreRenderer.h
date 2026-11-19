@@ -28,18 +28,28 @@ namespace plagc
 
 		void Init(Window* window);
 
+		void InitWorkspace();
+
 		void Shutdown();
 
 		friend class ::plagc::RendererBuilder;
 
 	private:
 
-		Owner<Ogre::Plugin> m_Plugin;
+		struct OgreFatcory
+		{
+			Ogre::Window* m_RenderWindow = nullptr;
+			Ogre::SceneManager* m_SceneManager = nullptr;
+			Ogre::Camera* m_Camera = nullptr;
+
+			Ogre::CompositorManager2* m_Compositor = nullptr;
+			Ogre::CompositorWorkspace* m_Workspace = nullptr;
+			Ogre::String m_WorkspaceName = "plagc.BasicWorkspace";
+		};
+
 		Owner<Ogre::Root> m_Root;
-		Ogre::Window* m_Window;
-		Ogre::SceneManager* m_SceneManager;
-		Ogre::Camera* m_Camera;
-		Ogre::CompositorManager2* m_CompositorManager2;
+
+		Owner<OgreFatcory> m_OgreFactory;
 
 	};
 

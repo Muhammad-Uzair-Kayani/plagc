@@ -38,7 +38,7 @@ namespace plagc
 	}
 
 	const int WindowsWindow::GetHeight() const noexcept
-	{
+	{ 
 		return m_pimpl->Height;
 	}
 
