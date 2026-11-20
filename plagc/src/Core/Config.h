@@ -63,3 +63,17 @@ private:
 
 #define GET_PLATFROM() ::Config::Get().PLATFROM
 #define GET_RENDERING_API() ::Config::Get().RENDERING_API
+
+
+
+enum class RenderSystem
+{
+	plagc,
+	Ogre_Next
+};
+
+#ifdef CUSTOM_API
+#define GET_RENDERER() RenderSystem::plagc
+#elif OGRE_NEXT
+#define GET_RENDERER() RenderSystem::Ogre_Next
+#endif

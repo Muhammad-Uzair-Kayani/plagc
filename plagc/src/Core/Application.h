@@ -2,10 +2,10 @@
 #include "Core.h"
 #include "EventSystem/Event.h"
 #include "EventSystem/EventBus.h"
-#include "Contracts/Window.h"
+#include "Contracts/Platforms/Window.h"
 #include "EventSystem/WindowEvent.h"
 #include "JobSystem/JobSystem.h"
-#include "RenderSystem/Ogre/OgreRenderer.h"
+#include "Contracts/RenderSystem/Renderer.h"
 
 namespace plagc
 {

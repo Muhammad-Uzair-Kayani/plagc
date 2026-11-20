@@ -13,8 +13,6 @@ public:
 	{
 		CLIENT_INFO("Sandbox Initialized");
 		m_KeyEventHandle = m_EventBus->Subscribe<plagc::KeyPressedEvent>(std::bind(&SandboxApp::OnKeyPressed, this, std::placeholders::_1));
-
-		StressTest();
 	}
 
 	~SandboxApp()
