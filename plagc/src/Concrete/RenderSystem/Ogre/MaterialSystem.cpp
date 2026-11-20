@@ -15,7 +15,7 @@
 
 namespace plagc
 {
-	OgreMaterialSystem::OgreMaterialSystem()
+	OgreMaterialSystem::OgreMaterialSystem(const std::string& hlmsPath)
 	{
 		namespace fs = std::filesystem;
 
@@ -25,7 +25,11 @@ namespace plagc
 
 		m_HlmsManager = root.getHlmsManager();
 		Ogre::ArchiveManager& archiveManager = Ogre::ArchiveManager::getSingleton();
-		const fs::path mediaPath = R"(third-party/ogre-next/Samples/Media)";
+		
+		const fs::path mediaPath = fs::absolute(hlmsPath).lexically_normal();
+
+		if (!fs::is_directory(mediaPath / "Hlms"))
+			throw std::runtime_error("Invalid HLMS media directory: " + mediaPath.string());
 
 		auto loadArchive = [&](const Ogre::String& folder) -> Ogre::Archive*
 			{

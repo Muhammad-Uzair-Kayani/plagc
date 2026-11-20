@@ -16,7 +16,7 @@ namespace plagc
 	class OgreMaterialSystem : public MaterialSystem
 	{
 	public:
-		OgreMaterialSystem();
+		OgreMaterialSystem(const std::string& hlmsPath);
 		~OgreMaterialSystem() override;
 
 		MaterialHandle RegisterMaterial(

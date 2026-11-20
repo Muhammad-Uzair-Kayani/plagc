@@ -7,6 +7,7 @@
 #include <OgreMeshManager2.h>
 #include <OgreTextureGpuManager.h>
 #include <OgreTextureGpu.h>
+#include <OgreTextureFilters.h>
 
 #include <filesystem>
 #include <stdexcept>

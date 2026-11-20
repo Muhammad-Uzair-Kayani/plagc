@@ -52,5 +52,5 @@ namespace plagc
 		virtual void SetTexture( MaterialHandle material, MaterialTexture slot, const std::string& filename ) = 0;
 	};
 
-    Owner<MaterialSystem> CreateMaterialSystem();
+    Owner<MaterialSystem> CreateMaterialSystem(const std::string& hlmsPath);
 }

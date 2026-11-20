@@ -4,20 +4,70 @@
 #include <thread>
 #include <vector>
 #include <chrono>
+#include <filesystem>
+
+
+#include "RenderingStressTest.h"
+
+
 
 class SandboxApp : public plagc::Application
 {
 public:
 
+
 	SandboxApp()
 	{
 		CLIENT_INFO("Sandbox Initialized");
-		m_KeyEventHandle = m_EventBus->Subscribe<plagc::KeyPressedEvent>(std::bind(&SandboxApp::OnKeyPressed, this, std::placeholders::_1));
+
+		m_KeyEventHandle = m_EventBus->Subscribe<plagc::KeyPressedEvent>(
+			std::bind(&SandboxApp::OnKeyPressed, this, std::placeholders::_1)
+		);
+
+		const std::filesystem::path mediaPath =
+			R"(C:\Personals\Game Engine Development\Development\plagc\third-party\ogre-next\Samples\Media)";
+
+		m_MaterialSystem = plagc::CreateMaterialSystem(mediaPath.string());
+
+		m_Scenes.emplace_back(
+			plagc::CreateSceneManager("Sandbox.Main", *m_MaterialSystem)
+		);
+
+		m_Scenes.emplace_back(
+			plagc::CreateSceneManager("Sandbox.Secondary", *m_MaterialSystem)
+		);
+
+		sandbox::RenderingTestAssets assets;
+
+		// Ogre v2 compatible mesh
+		assets.MeshDirectory = (mediaPath / "packs" / "DebugPack").string();
+		assets.MeshFile = "Cube_d.mesh";
+
+		// Actual directory from materials.zip
+		assets.TextureDirectory = (mediaPath / "materials" / "textures").string();
+
+		// Existing Ogre sample textures
+		assets.AlbedoFile = "Panels_Diffuse.png";
+		assets.NormalFile = "Panels_Normal_Tangent.png";
+		assets.RoughnessFile = "GlassRoughness.png";
+		assets.MetalnessFile = "Panels_refmask.png";
+
+		assets.InstanceCount = 256;
+
+		m_RenderTest = std::make_unique<sandbox::RenderingStressTest>(
+			*m_Renderer,
+			*m_MaterialSystem,
+			*m_Scenes[0],
+			*m_Scenes[1]
+		);
+
+		m_RenderTest->Initialize(assets);
 	}
+
 
 	~SandboxApp()
 	{
-		
+		m_RenderTest.reset();
 	}
 
 	void OnKeyPressed(plagc::Event& e)
@@ -31,7 +81,8 @@ public:
 
 	void OnUpdate() override
 	{
-		
+		if (m_RenderTest)
+			m_RenderTest->OnUpdate();
 	}
 
 	void StressTest()
@@ -140,6 +191,7 @@ private:
 
 	plagc::SubscriptionHandler<plagc::KeyPressedEvent> m_KeyEventHandle;
 
+	std::unique_ptr<sandbox::RenderingStressTest> m_RenderTest;
 };
 
 

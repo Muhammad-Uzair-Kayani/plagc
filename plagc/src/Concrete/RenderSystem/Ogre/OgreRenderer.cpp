@@ -9,6 +9,7 @@
 #include <OgreAbiUtils.h>
 #include <OgreVulkanPlugin.h>
 #include <Compositor/OgreCompositorManager2.h>
+#include <OgreWindow.h>
 
 #include <cstdint>
 #include <stdexcept>

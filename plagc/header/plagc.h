@@ -7,3 +7,7 @@
 #include "EventSystem/KeyEvent.h"
 #include "EventSystem/MouseEvent.h"
 #include "JobSystem/JobSystem.h"
+#include "Contracts/RenderSystem/Renderer.h"
+#include "Contracts/RenderSystem/SceneManager.h"
+#include "Contracts/RenderSystem/ResourceManager.h"
+#include "Contracts/RenderSystem/MaterialSystem.h"

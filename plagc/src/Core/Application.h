@@ -6,6 +6,10 @@
 #include "EventSystem/WindowEvent.h"
 #include "JobSystem/JobSystem.h"
 #include "Contracts/RenderSystem/Renderer.h"
+#include "Contracts/RenderSystem/MaterialSystem.h"
+#include "Contracts/RenderSystem/SceneManager.h"
+
+#include <vector>
 
 namespace plagc
 {
@@ -38,11 +42,15 @@ namespace plagc
 		SubscriptionHandler<WindowCloseRequestEvent> m_WindowCloseReqHandle;
 		SubscriptionHandler<WindowClosedEvent> m_WindowClosedHandle;
 		Owner<Window> m_Window;
-		Owner<Renderer> m_Renderer;
 		
 	protected:
 
+		Owner<Renderer> m_Renderer;
+
 		JobSystem m_JobSystem;
+
+		Owner<MaterialSystem> m_MaterialSystem;
+		std::vector<Owner<SceneManager>> m_Scenes;
 
 
 	private:

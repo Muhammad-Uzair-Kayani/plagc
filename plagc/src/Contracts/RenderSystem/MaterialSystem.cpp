@@ -7,12 +7,12 @@
 
 namespace plagc
 {
-    Owner<MaterialSystem> CreateMaterialSystem()
+    Owner<MaterialSystem> CreateMaterialSystem(const std::string& hlmsPath)
     {
         switch (GET_RENDERER())
         {
         case RenderSystem::Ogre_Next:
-            return Owner<MaterialSystem>(new OgreMaterialSystem());
+            return Owner<MaterialSystem>(new OgreMaterialSystem(hlmsPath));
 
         case RenderSystem::plagc:
         default:
