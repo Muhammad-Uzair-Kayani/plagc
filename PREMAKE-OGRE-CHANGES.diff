@@ -1,0 +1,47 @@
+--- OGRE.lua (6-error fix)
++++ OGRE.lua (SPIRV-Reflect fix)
+@@ -279,6 +279,23 @@
+         filter {}
+ end
+ 
++-- SPIRV-Reflect is a C implementation, not a C++ source. Our Vulkan
++-- *.cpp selection intentionally cannot include it. Compile the vendored
++-- spirv_reflect.c alongside the other Vulkan files, rather than expecting
++-- shaderc_combined.lib to provide these unrelated API symbols.
++local function findSpirvReflectSource()
++    local sources = os.matchfiles(path.join(OGRE_DIR, "RenderSystems/Vulkan/**/spirv_reflect.c"))
++    table.sort(sources)
++    if #sources ~= 1 then
++        error("Expected exactly one vendored spirv_reflect.c under " ..
++              path.join(OGRE_DIR, "RenderSystems/Vulkan") ..
++              "; found " .. tostring(#sources) ..
++              ". Ensure Ogre-Next's SPIRV-Reflect sources/submodules are checked out " ..
++              "(git submodule update --init --recursive).", 0)
++    end
++    return sources[1]
++end
++
+ function createOgreProjects()
+     if os.host() ~= "windows" then
+         error("This Ogre source recipe targets Windows x64 / Vulkan only; GLFW's Linux support remains unchanged.", 0)
+@@ -325,10 +342,18 @@
+         links { "OgreNextHlmsCommon", "OgreNextMain" }
+ 
+     ogreProject("RenderSystem_Vulkan")
+-        files {
+-            path.join(OGRE_DIR, "RenderSystems/Vulkan/include/**.h")
++        local spirvReflectSource = findSpirvReflectSource()
++        files {
++            path.join(OGRE_DIR, "RenderSystems/Vulkan/include/**.h"),
++            spirvReflectSource
+         }
+         files(selectedCpp(path.join(OGRE_DIR, "RenderSystems/Vulkan/src"), rejectVulkanSource))
++        -- Needed by spirv_reflect.c for its matching header and bundled SPIR-V headers.
++        includedirs {
++            path.getdirectory(spirvReflectSource),
++            path.join(OGRE_DIR, "RenderSystems/Vulkan/include/SPIRV-Reflect"),
++            path.join(OGRE_DIR, "RenderSystems/Vulkan/include/SPIRV-Reflect/include")
++        }
+         links { "OgreNextMain" }
+     group ""
+ end

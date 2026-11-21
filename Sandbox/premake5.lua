@@ -7,7 +7,7 @@ project "Sandbox"
 
     targetdir (path.join(ROOT_DIR, "bin/%{cfg.buildcfg}/%{prj.name}"))
     objdir (path.join(ROOT_DIR, "bin-int/%{cfg.buildcfg}/%{prj.name}"))
-    debugdir (ROOT_DIR)
+    debugdir ("%{cfg.targetdir}")
 
     files {
         path.join(ROOT_DIR, "Sandbox/src/**.h"),
@@ -40,6 +40,7 @@ project "Sandbox"
     links { "plagc", "GLFW" }
 
     linkOgreVulkan()
+    copyOgreMediaToSandbox()
 
     filter "action:vs*"
         buildoptions { "/utf-8" }

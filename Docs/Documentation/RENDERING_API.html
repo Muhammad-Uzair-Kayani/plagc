@@ -1,0 +1,1528 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>plagc — Rendering System API Reference</title><style>
+:root{color-scheme:light dark}*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{font-family:Inter,Segoe UI,Arial,sans-serif;line-height:1.68;margin:0;background:#f5f7fb;color:#172336}
+main{max-width:1120px;margin:auto;padding:50px 44px 100px;background:#fff;min-height:100vh;box-shadow:0 0 30px rgba(20,40,65,.06)}
+h1,h2,h3,h4{line-height:1.3;scroll-margin-top:30px}h1{font-size:2.25rem;border-bottom:3px solid #2870ad;padding-bottom:16px;color:#173b63}h2{font-size:1.55rem;margin-top:44px;border-bottom:1px solid #dbe3ec;padding-bottom:10px;color:#1b507f}h3{font-size:1.2rem;color:#214e76;margin-top:30px}h4{font-size:1.03rem}a{color:#1664a1;text-decoration:none}a:hover{text-decoration:underline}
+p{margin:12px 0}blockquote{margin:20px 0;border-left:4px solid #3d84c0;background:#eef6fd;padding:12px 18px;border-radius:0 7px 7px 0}blockquote p{margin:4px 0}
+table{width:100%;border-collapse:separate;border-spacing:0;margin:18px 0 26px;font-size:.9rem;overflow-wrap:anywhere}th,td{padding:10px 12px;text-align:left;vertical-align:top;border-bottom:1px solid #e2e8f0}th{background:#eaf1f8;color:#1d486d;font-weight:700;border-top:1px solid #d6e2ee}tr:nth-child(even) td{background:#fafcff}code{font-family:Consolas,SFMono-Regular,monospace;background:#eef2f6;padding:1px 4px;border-radius:3px;font-size:.89em}pre{border:1px solid #263f55;background:#102333;color:#eaf5ff;padding:18px;border-radius:8px;overflow-x:auto;font-size:.92rem}pre code{background:none;padding:0;color:inherit}hr{border:0;border-top:1px solid #dce3ea;margin:36px 0}ul,ol{padding-left:23px}li{margin:4px 0}strong{color:#102f4c}
+@media print{body{background:white;color:black}main{padding:0;box-shadow:none}h2,h3{break-after:avoid}tr{break-inside:avoid}a{color:#222}pre{white-space:pre-wrap;color:black;background:#f4f4f4;border:1px solid #aaa}th{color:black;background:#eee}blockquote{background:#eee}}
+@media(max-width:680px){main{padding:20px 15px}h1{font-size:1.7rem}h2{font-size:1.3rem}table{font-size:.8rem}th,td{padding:7px 6px}}
+@media(prefers-color-scheme:dark){body{background:#0c1624;color:#dae5f2}main{background:#111f30;box-shadow:none}h1{color:#dfecff}h2,h3{color:#add8ff}a{color:#8bcaff}th{background:#19334d;color:#cee6ff;border-color:#38516c}td{border-color:#354a60}tr:nth-child(even) td{background:#16283a}blockquote{background:#18374e}strong{color:#eff8ff}code{background:#1d3850}hr{border-color:#354a60}}
+</style></head><body><main><h1 id="plagc-rendering-system-api-reference">plagc Rendering System — API Reference</h1>
+<p><strong>Version:</strong> Phase 3 (lights, ambient illumination, and shadows)<br />
+<strong>Namespace:</strong> <code>plagc</code><br />
+<strong>Primary language:</strong> C++20<br />
+<strong>Backend in the supplied implementation:</strong> Ogre-Next 3.0 / Vulkan (Windows external-window integration)</p>
+<blockquote>
+<p><strong>Source scope.</strong> This document is based on the supplied <code>plagc_lighting_phase3.zip</code> (the cumulative Phase 1–3 update) and the original <code>RenderSystem (2).zip</code> for APIs that were not changed in Phase 3. It documents the code as supplied, <strong>not</strong> a separately verified build or the latest live GitHub revision. Public methods and internal implementation details are deliberately separated.</p>
+</blockquote>
+<h2 id="contents">Contents</h2>
+<ol>
+<li><a href="#1-system-structure-and-ownership">System structure and ownership</a></li>
+<li><a href="#2-renderer-and-workspace-apis">Renderer and workspace APIs</a></li>
+<li><a href="#3-scenemanager-api">SceneManager API</a></li>
+<li><a href="#4-camera-api">Camera API</a></li>
+<li><a href="#5-light-apis">Light APIs</a></li>
+<li><a href="#6-ambient-illumination-api">Ambient illumination API</a></li>
+<li><a href="#7-shadow-configuration-api">Shadow configuration API</a></li>
+<li><a href="#8-materialsystem-api">MaterialSystem API</a></li>
+<li><a href="#9-resourcemanager-api">ResourceManager API</a></li>
+<li><a href="#10-concrete-ogre-classes-internalbackend-apis">Concrete Ogre classes (internal/backend APIs)</a></li>
+<li><a href="#11-typical-usage-sequences">Typical usage sequences</a></li>
+<li><a href="#12-lifecycle-errors-and-limits">Lifecycle, errors and limits</a></li>
+<li><a href="#13-header-and-source-index">Header and source index</a></li>
+</ol>
+<hr />
+<h2 id="1-system-structure-and-ownership">1. System structure and ownership</h2>
+<h3 id="11-public-contracts-versus-concrete-backends">1.1 Public contracts versus concrete backends</h3>
+<table>
+<thead>
+<tr>
+  <th>Public contract / type</th>
+  <th>Concrete implementation</th>
+  <th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>Renderer</code></td>
+  <td><code>OgreRenderer</code></td>
+  <td>Root rendering initialization, scene binding, compositor workspace, frame rendering</td>
+</tr>
+<tr>
+  <td><code>SceneManager</code></td>
+  <td><code>OgreSceneManager</code></td>
+  <td>Scene cameras, light wrappers, node hierarchy and mesh items</td>
+</tr>
+<tr>
+  <td><code>Camera</code></td>
+  <td><code>OgreCamera</code></td>
+  <td>Camera movement, orientation and projection</td>
+</tr>
+<tr>
+  <td><code>Light</code> / its subtypes</td>
+  <td><code>OgreDirectionalLight</code>, <code>OgrePointLight</code>, <code>OgreSpotLight</code></td>
+  <td>Light properties and native Ogre light operations</td>
+</tr>
+<tr>
+  <td><code>MaterialSystem</code></td>
+  <td><code>OgreMaterialSystem</code></td>
+  <td>PBS/Unlit datablocks, material handles and backend shadow sampling settings</td>
+</tr>
+<tr>
+  <td><code>ResourceManager</code></td>
+  <td><code>OgreResourceManager</code></td>
+  <td>Mesh/texture resource handles, caching and Ogre resource lookup</td>
+</tr>
+<tr>
+  <td><code>ShadowSettings</code></td>
+  <td>Used by <code>OgreRenderer</code> and <code>OgreMaterialSystem</code></td>
+  <td>Plain workspace-level configuration value; <strong>not</strong> a polymorphic object</td>
+</tr>
+<tr>
+  <td><code>WorkspaceConfig</code></td>
+  <td>Read by <code>OgreRenderer</code></td>
+  <td>Optional shadow configuration passed when selecting a scene</td>
+</tr>
+</tbody>
+</table>
+<h3 id="12-ownership-rules">1.2 Ownership rules</h3>
+<table>
+<thead>
+<tr>
+  <th>Object</th>
+  <th>Who owns it?</th>
+  <th>How client code receives it</th>
+  <th>Destruction</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Renderer</td>
+  <td>Client <code>Owner&lt;Renderer&gt;</code></td>
+  <td><code>RendererBuilder().WindowHandle(window).Build()</code></td>
+  <td>Release owner after renderer-dependent resources have been destroyed</td>
+</tr>
+<tr>
+  <td>Scene</td>
+  <td>Client <code>Owner&lt;SceneManager&gt;</code></td>
+  <td><code>CreateSceneManager(...)</code></td>
+  <td>Destroy scene after clearing its compositor workspace</td>
+</tr>
+<tr>
+  <td>Camera</td>
+  <td><code>SceneManager</code></td>
+  <td>Borrowed <code>Camera*</code> from <code>CreateCamera</code>/<code>GetCamera</code></td>
+  <td><code>DestroyCamera(name)</code> or scene destruction</td>
+</tr>
+<tr>
+  <td>Light</td>
+  <td><code>SceneManager</code></td>
+  <td>Borrowed typed pointer from <code>Create*Light</code>/<code>Get*Light</code></td>
+  <td><code>DestroyLight(name)</code> or scene destruction</td>
+</tr>
+<tr>
+  <td>Scene node</td>
+  <td><code>SceneManager</code></td>
+  <td><code>SceneNodeHandle</code> (<code>uint64_t</code>)</td>
+  <td><code>DestroyNode(handle)</code> after dependents are gone</td>
+</tr>
+<tr>
+  <td>Mesh item</td>
+  <td><code>SceneManager</code></td>
+  <td><code>SceneItemHandle</code> (<code>uint64_t</code>)</td>
+  <td><code>DestroyItem(handle)</code> or scene destruction</td>
+</tr>
+<tr>
+  <td>Material</td>
+  <td><code>MaterialSystem</code></td>
+  <td><code>MaterialHandle</code> (<code>uint64_t</code>)</td>
+  <td><code>DestroyMaterial(handle)</code> after no renderables use it</td>
+</tr>
+<tr>
+  <td>Mesh/texture registration</td>
+  <td><code>ResourceManager</code> singleton</td>
+  <td><code>ResourceHandle</code> (<code>uint64_t</code>)</td>
+  <td><code>ReleaseResource(handle)</code>; not necessarily native GPU eviction</td>
+</tr>
+<tr>
+  <td>Native Ogre light / camera / node</td>
+  <td>Native Ogre scene</td>
+  <td>Non-owning pointer retained by wrappers/records</td>
+  <td>Managed through corresponding <code>Ogre::SceneManager</code></td>
+</tr>
+<tr>
+  <td>Compositor workspace</td>
+  <td><code>OgreRenderer</code></td>
+  <td>No public handle</td>
+  <td><code>ClearScene()</code> / renderer shutdown</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Important:</strong> A pointer returned by <code>CreateCamera</code>, <code>GetCamera</code>, <code>Create*Light</code> or <code>Get*Light</code> is <strong>borrowed</strong>. Never <code>delete</code> it or store it after its scene has been destroyed. <code>Owner&lt;T&gt;</code> is the project's owning pointer abstraction (as used in the supplied headers); it is not a separate rendering handle type.</p>
+<hr />
+<h2 id="2-renderer-and-workspace-apis">2. Renderer and workspace APIs</h2>
+<p><strong>Public headers:</strong> <code>Contracts/RenderSystem/Renderer.h</code>, <code>Contracts/RenderSystem/Shadow.h</code></p>
+<h3 id="21-rendererbuilder">2.1 <code>RendererBuilder</code></h3>
+<table>
+<thead>
+<tr>
+  <th>Public method</th>
+  <th>Returns</th>
+  <th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>RendererBuilder&amp; WindowHandle(Window* window)</code></td>
+  <td>Builder reference</td>
+  <td>Supplies an existing application window; supports chaining. Does <strong>not</strong> take ownership of that window.</td>
+</tr>
+<tr>
+  <td><code>Owner&lt;Renderer&gt; Build()</code></td>
+  <td>Owning renderer</td>
+  <td>Validates a non-null window and creates the selected backend implementation.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Internal:</strong> <code>BuildRenderer()</code> chooses the backend from <code>GET_RENDERER()</code>. In the supplied code, <code>RenderSystem::Ogre_Next</code> constructs <code>OgreRenderer</code>; other paths throw.</p>
+<pre><code class="language-cpp">Owner&lt;Renderer&gt; renderer = RendererBuilder()
+    .WindowHandle(window)
+    .Build();
+</code></pre>
+<h3 id="22-renderer">2.2 <code>Renderer</code></h3>
+<table>
+<thead>
+<tr>
+  <th>Public method</th>
+  <th>What it does</th>
+  <th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>void SetScene(SceneManager&amp; scene, Camera&amp; camera)</code></td>
+  <td>Sets the current scene/camera using the <strong>basic workspace without shadows</strong>.</td>
+  <td>Kept for compatibility. Calls configured overload with empty <code>WorkspaceConfig</code>.</td>
+</tr>
+<tr>
+  <td><code>void SetScene(SceneManager&amp; scene, Camera&amp; camera, const WorkspaceConfig&amp; config)</code></td>
+  <td>Creates and selects a workspace for this scene/camera.</td>
+  <td>Uses <code>config.Shadows</code> to decide whether to create a shadow-enabled workspace.</td>
+</tr>
+<tr>
+  <td><code>void ClearScene()</code></td>
+  <td>Removes the active compositor workspace.</td>
+  <td>Also removes any generated workspace/shadow-node definitions owned by that active workspace. Does not destroy the scene, camera, lights or items.</td>
+</tr>
+<tr>
+  <td><code>void OnWindowResize()</code></td>
+  <td>Notifies the Ogre render window of external-window size changes.</td>
+  <td>Call from the application resize pathway.</td>
+</tr>
+<tr>
+  <td><code>void OnUpdate()</code></td>
+  <td>Renders one frame, <strong>if</strong> a workspace is active.</td>
+  <td>Returns without rendering if none is bound; throws if Ogre reports frame rendering failure.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="23-workspaceconfig">2.3 <code>WorkspaceConfig</code></h3>
+<pre><code class="language-cpp">struct WorkspaceConfig
+{
+    std::optional&lt;ShadowSettings&gt; Shadows;
+};
+</code></pre>
+<table>
+<thead>
+<tr>
+  <th>Field</th>
+  <th>Default</th>
+  <th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>Shadows</code></td>
+  <td><code>std::nullopt</code></td>
+  <td>No shadow compositor node. If populated, the renderer creates a shadow-enabled workspace using its settings.</td>
+</tr>
+</tbody>
+</table>
+<p>There is no public <code>Shadow</code> class, <code>CreateShadow()</code> factory, shadow object handle, or separate shadow manager in Phase 3.</p>
+<h3 id="24-workspace-replacement-behavior">2.4 Workspace replacement behavior</h3>
+<ol>
+<li>Validates that scene and camera are Ogre-backed and that the camera belongs to the supplied scene.</li>
+<li>If shadows are requested, validates shadow settings, creates a uniquely named compositor shadow-node definition, and creates a workspace definition using it.</li>
+<li>Creates the replacement runtime workspace <strong>before</strong> removing the old runtime workspace.</li>
+<li>Coordinates PBS/Unlit shadow-filter settings via the scene's <code>OgreMaterialSystem</code>.</li>
+<li>Calls <code>ClearScene()</code> for the old workspace and installs the newly created workspace.</li>
+<li>Removes any newly created definitions if creation fails. A failed creation is intended to leave the previous active workspace in place.</li>
+</ol>
+<p><strong>Scope:</strong> The renderer supports <strong>one active compositor workspace</strong> in the supplied version. Passing a new <code>ShadowSettings</code> structure does not dynamically modify an existing workspace; call <code>SetScene()</code> again to rebuild/select a replacement.</p>
+<hr />
+<h2 id="3-scenemanager-api">3. SceneManager API</h2>
+<p><strong>Header:</strong> <code>Contracts/RenderSystem/SceneManager.h</code><br />
+<strong>Creation function:</strong></p>
+<pre><code class="language-cpp">Owner&lt;SceneManager&gt; CreateSceneManager(
+    const std::string&amp; name,
+    MaterialSystem&amp; materials,
+    std::size_t workerThreads = 0
+);
+</code></pre>
+<p>Creates a named scene using the currently selected rendering backend. The <code>MaterialSystem&amp;</code> is <strong>non-owning</strong>; the material system must outlive the scene. Empty names or duplicate Ogre scene names are rejected.</p>
+<h3 id="31-camera-management">3.1 Camera management</h3>
+<table>
+<thead>
+<tr>
+  <th>Method</th>
+  <th>Returns</th>
+  <th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>Camera* CreateCamera(const std::string&amp; name)</code></td>
+  <td>Borrowed camera pointer</td>
+  <td>Creates and registers a native Ogre camera plus its public wrapper. Throws on empty/duplicate name.</td>
+</tr>
+<tr>
+  <td><code>Camera* GetCamera(const std::string&amp; name) const</code></td>
+  <td>Pointer or <code>nullptr</code></td>
+  <td>Finds a camera by scene-local name.</td>
+</tr>
+<tr>
+  <td><code>void DestroyCamera(const std::string&amp; name)</code></td>
+  <td>—</td>
+  <td>Destroys the native camera and wrapper. Clear any renderer workspace using it first.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32-light-creation-and-lookup">3.2 Light creation and lookup</h3>
+<table>
+<thead>
+<tr>
+  <th>Method</th>
+  <th>Returns</th>
+  <th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>DirectionalLight* CreateDirectionalLight(const std::string&amp; name, SceneNodeHandle parent = InvalidSceneNode)</code></td>
+  <td>Borrowed directional-light pointer</td>
+  <td>Creates a directional light with its own transform child node.</td>
+</tr>
+<tr>
+  <td><code>PointLight* CreatePointLight(const std::string&amp; name, SceneNodeHandle parent = InvalidSceneNode)</code></td>
+  <td>Borrowed point-light pointer</td>
+  <td>Creates a point light with its own transform child node.</td>
+</tr>
+<tr>
+  <td><code>SpotLight* CreateSpotLight(const std::string&amp; name, SceneNodeHandle parent = InvalidSceneNode)</code></td>
+  <td>Borrowed spotlight pointer</td>
+  <td>Creates a spotlight with its own transform child node.</td>
+</tr>
+<tr>
+  <td><code>Light* GetLight(const std::string&amp; name) const</code></td>
+  <td>Base pointer or <code>nullptr</code></td>
+  <td>Type-neutral lookup.</td>
+</tr>
+<tr>
+  <td><code>DirectionalLight* GetDirectionalLight(const std::string&amp; name) const</code></td>
+  <td>Typed pointer or <code>nullptr</code></td>
+  <td>Returns null for missing name or wrong type.</td>
+</tr>
+<tr>
+  <td><code>PointLight* GetPointLight(const std::string&amp; name) const</code></td>
+  <td>Typed pointer or <code>nullptr</code></td>
+  <td>Returns null for missing name or wrong type.</td>
+</tr>
+<tr>
+  <td><code>SpotLight* GetSpotLight(const std::string&amp; name) const</code></td>
+  <td>Typed pointer or <code>nullptr</code></td>
+  <td>Returns null for missing name or wrong type.</td>
+</tr>
+<tr>
+  <td><code>void DestroyLight(const std::string&amp; name)</code></td>
+  <td>—</td>
+  <td>Destroys native light and its private transform node; removes the wrapper record. Throws for unknown name.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Hierarchy:</strong> <code>parent == InvalidSceneNode</code> means the native root node; otherwise the named light receives a <strong>dedicated child node</strong> of that parent. Moving/rotating a parent consequently affects the light's transform. The dedicated light node is <strong>not</strong> given a public <code>SceneNodeHandle</code>.</p>
+<h3 id="33-ambient-illumination">3.3 Ambient illumination</h3>
+<table>
+<thead>
+<tr>
+  <th>Method</th>
+  <th>Returns</th>
+  <th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>void SetAmbientLight(const AmbientLightProperties&amp; properties)</code></td>
+  <td>—</td>
+  <td>Applies hemisphere upper/lower ambient colors, direction, and environment scale to the native scene.</td>
+</tr>
+<tr>
+  <td><code>AmbientLightProperties GetAmbientLight() const</code></td>
+  <td>Value</td>
+  <td>Reads current native hemisphere ambient properties.</td>
+</tr>
+</tbody>
+</table>
+<p>See <a href="#6-ambient-illumination-api">Section 6</a> for fields and constraints.</p>
+<h3 id="34-scene-node-management">3.4 Scene node management</h3>
+<p><strong>Types:</strong> <code>using SceneNodeHandle = std::uint64_t;</code> and <code>constexpr SceneNodeHandle InvalidSceneNode = 0;</code></p>
+<table>
+<thead>
+<tr>
+  <th>Method</th>
+  <th>Returns</th>
+  <th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>SceneNodeHandle CreateNode(const std::string&amp; name, SceneNodeHandle parent = InvalidSceneNode)</code></td>
+  <td>Handle</td>
+  <td>Creates a named node below parent or root; validates name and parent.</td>
+</tr>
+<tr>
+  <td><code>SceneNodeHandle GetNode(const std::string&amp; name) const</code></td>
+  <td>Handle</td>
+  <td>Name lookup; returns <code>InvalidSceneNode</code> when missing.</td>
+</tr>
+<tr>
+  <td><code>void DestroyNode(SceneNodeHandle node)</code></td>
+  <td>—</td>
+  <td>Destroys a node <strong>only if it has no native children and no attached objects</strong>.</td>
+</tr>
+<tr>
+  <td><code>void SetNodePosition(SceneNodeHandle node, float x, float y, float z)</code></td>
+  <td>—</td>
+  <td>Sets local position.</td>
+</tr>
+<tr>
+  <td><code>void SetNodeScale(SceneNodeHandle node, float x, float y, float z)</code></td>
+  <td>—</td>
+  <td>Sets local scale.</td>
+</tr>
+<tr>
+  <td><code>void SetNodeRotation(SceneNodeHandle node, float yaw, float pitch, float roll)</code></td>
+  <td>—</td>
+  <td>Replaces node orientation using angles in <strong>degrees</strong>, composed as Y-yaw × X-pitch × Z-roll.</td>
+</tr>
+<tr>
+  <td><code>SceneVector3 GetNodePosition(SceneNodeHandle node) const</code></td>
+  <td>Value</td>
+  <td>Reads the node's local position.</td>
+</tr>
+</tbody>
+</table>
+<p><code>SceneVector3</code> contains <code>float X</code>, <code>Y</code>, <code>Z</code> (all default 0). Missing/invalid handles throw for mutation or retrieval methods that require a node. A node containing a privately owned light transform node cannot be destroyed until the associated light is destroyed.</p>
+<h3 id="35-mesh-item-management-and-shadow-casting">3.5 Mesh item management and shadow casting</h3>
+<p><strong>Types:</strong> <code>using SceneItemHandle = std::uint64_t;</code> and <code>constexpr SceneItemHandle InvalidSceneItem = 0;</code></p>
+<table>
+<thead>
+<tr>
+  <th>Method</th>
+  <th>Returns</th>
+  <th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>SceneItemHandle CreateItem(const std::string&amp; name, ResourceHandle mesh, SceneNodeHandle node)</code></td>
+  <td>Handle</td>
+  <td>Builds an Ogre mesh item using a loaded mesh handle; attaches it to an existing node.</td>
+</tr>
+<tr>
+  <td><code>SceneItemHandle GetItem(const std::string&amp; name) const</code></td>
+  <td>Handle</td>
+  <td>Returns registered item handle or <code>InvalidSceneItem</code>.</td>
+</tr>
+<tr>
+  <td><code>void DestroyItem(SceneItemHandle item)</code></td>
+  <td>—</td>
+  <td>Destroys the native item and clears its registration.</td>
+</tr>
+<tr>
+  <td><code>void SetMaterial(SceneItemHandle item, MaterialHandle material)</code></td>
+  <td>—</td>
+  <td>Applies a datablock to the whole item.</td>
+</tr>
+<tr>
+  <td><code>void SetSubMaterial(SceneItemHandle item, std::size_t subItemIndex, MaterialHandle material)</code></td>
+  <td>—</td>
+  <td>Applies a datablock to a specified subitem; checks index bounds.</td>
+</tr>
+<tr>
+  <td><code>void SetItemCastShadows(SceneItemHandle item, bool enabled)</code></td>
+  <td>—</td>
+  <td>Enables/disables this item's participation as a shadow caster.</td>
+</tr>
+<tr>
+  <td><code>bool GetItemCastShadows(SceneItemHandle item) const</code></td>
+  <td><code>bool</code></td>
+  <td>Reads native item shadow-casting flag.</td>
+</tr>
+</tbody>
+</table>
+<p><code>SetItemCastShadows</code> controls <strong>casting</strong>; it does not control whether a PBS material <strong>receives</strong> shadows (see <code>MaterialSystem::SetReceiveShadows</code>).</p>
+<hr />
+<h2 id="4-camera-api">4. Camera API</h2>
+<p><strong>Header:</strong> <code>Contracts/RenderSystem/Camera.h</code><br />
+<strong>Creation/ownership:</strong> <code>SceneManager::CreateCamera</code>, not an independent camera factory.</p>
+<p><strong>Return type:</strong> <code>CameraVector3</code> has <code>float X</code>, <code>Y</code>, and <code>Z</code>.</p>
+<h3 id="41-transform-and-orientation">4.1 Transform and orientation</h3>
+<table>
+<thead>
+<tr>
+  <th>Method</th>
+  <th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>void SetPosition(float x, float y, float z)</code></td>
+  <td>Sets camera position.</td>
+</tr>
+<tr>
+  <td><code>CameraVector3 GetPosition() const</code></td>
+  <td>Returns camera position.</td>
+</tr>
+<tr>
+  <td><code>void Move(float x, float y, float z)</code></td>
+  <td>Moves camera by a vector passed to native <code>Ogre::Camera::move</code>.</td>
+</tr>
+<tr>
+  <td><code>void MoveRelative(float x, float y, float z)</code></td>
+  <td>Moves in the camera's local orientation frame.</td>
+</tr>
+<tr>
+  <td><code>void LookAt(float x, float y, float z)</code></td>
+  <td>Points camera toward a world target.</td>
+</tr>
+<tr>
+  <td><code>void SetDirection(float x, float y, float z)</code></td>
+  <td>Sets its viewing direction.</td>
+</tr>
+<tr>
+  <td><code>void Yaw(float degrees)</code></td>
+  <td>Rotates around the native camera yaw axis, in degrees.</td>
+</tr>
+<tr>
+  <td><code>void Pitch(float degrees)</code></td>
+  <td>Pitches camera in degrees.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="42-projection">4.2 Projection</h3>
+<table>
+<thead>
+<tr>
+  <th>Method</th>
+  <th>What it does</th>
+  <th>Validation in supplied Ogre implementation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>void SetPerspective(float fovYDegrees, float aspectRatio, float nearClip, float farClip)</code></td>
+  <td>Selects perspective and sets vertical FOV, aspect and near/far clipping.</td>
+  <td><code>0 &lt; FOV &lt; 179</code>; aspect &gt; 0; near &gt; 0; far == 0 or far &gt; near.</td>
+</tr>
+<tr>
+  <td><code>void SetOrthographic(float width, float height, float nearClip, float farClip)</code></td>
+  <td>Selects orthographic projection with requested view dimensions.</td>
+  <td>Width/height &gt; 0; near &gt; 0; far &gt; near.</td>
+</tr>
+<tr>
+  <td><code>void SetAspectRatio(float aspectRatio)</code></td>
+  <td>Disables auto aspect and sets manual ratio.</td>
+  <td>Aspect &gt; 0.</td>
+</tr>
+<tr>
+  <td><code>void SetAutoAspectRatio(bool enabled)</code></td>
+  <td>Toggles Ogre's automatic aspect handling.</td>
+  <td>No extra validation.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-light-apis">5. Light APIs</h2>
+<p><strong>Header:</strong> <code>Contracts/RenderSystem/Light.h</code><br />
+<strong>Inheritance:</strong> <code>Light</code> → <code>DirectionalLight</code>; <code>Light</code> → <code>PositionalLight</code> → (<code>PointLight</code>, <code>SpotLight</code>).</p>
+<h3 id="51-light-value-types">5.1 Light value types</h3>
+<table>
+<thead>
+<tr>
+  <th>Type</th>
+  <th>Fields / cases</th>
+  <th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>enum class LightType</code></td>
+  <td><code>Directional</code>, <code>Point</code>, <code>Spot</code></td>
+  <td>Identifies a public light subtype.</td>
+</tr>
+<tr>
+  <td><code>struct LightColor</code></td>
+  <td><code>float R = 1</code>, <code>G = 1</code>, <code>B = 1</code></td>
+  <td>RGB light color, no alpha.</td>
+</tr>
+<tr>
+  <td><code>struct LightVector3</code></td>
+  <td><code>float X = 0</code>, <code>Y = 0</code>, <code>Z = 0</code></td>
+  <td>Position/direction vector.</td>
+</tr>
+<tr>
+  <td><code>struct AttenuationProperties</code></td>
+  <td><code>Range = 100</code>, <code>Constant = 1</code>, <code>Linear = 0</code>, <code>Quadratic = 0</code></td>
+  <td>Distance attenuation values (the struct's defaults, not a promise about native light initial state).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="52-light-common-contract">5.2 <code>Light</code> — common contract</h3>
+<p>All directional, point and spot lights expose these methods:</p>
+<table>
+<thead>
+<tr>
+  <th>Method</th>
+  <th>Return</th>
+  <th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>LightType GetType() const</code></td>
+  <td>Type</td>
+  <td>Reports <code>Directional</code>, <code>Point</code>, or <code>Spot</code>.</td>
+</tr>
+<tr>
+  <td><code>void SetDiffuseColor(const LightColor&amp; color)</code></td>
+  <td>—</td>
+  <td>Sets the native diffuse contribution of the light.</td>
+</tr>
+<tr>
+  <td><code>LightColor GetDiffuseColor() const</code></td>
+  <td>Color</td>
+  <td>Reads native diffuse color.</td>
+</tr>
+<tr>
+  <td><code>void SetSpecularColor(const LightColor&amp; color)</code></td>
+  <td>—</td>
+  <td>Sets the native specular contribution.</td>
+</tr>
+<tr>
+  <td><code>LightColor GetSpecularColor() const</code></td>
+  <td>Color</td>
+  <td>Reads native specular color.</td>
+</tr>
+<tr>
+  <td><code>void SetPowerScale(float scale)</code></td>
+  <td>—</td>
+  <td>Sets nonnegative light intensity multiplier. Throws if negative/NaN.</td>
+</tr>
+<tr>
+  <td><code>float GetPowerScale() const</code></td>
+  <td><code>float</code></td>
+  <td>Reads intensity multiplier.</td>
+</tr>
+<tr>
+  <td><code>void SetCastShadows(bool enabled)</code></td>
+  <td>—</td>
+  <td>Marks this light eligible to cast shadows when a suitable shadow workspace is active.</td>
+</tr>
+<tr>
+  <td><code>bool GetCastShadows() const</code></td>
+  <td><code>bool</code></td>
+  <td>Reads native casting flag.</td>
+</tr>
+<tr>
+  <td><code>void SetVisible(bool visible)</code></td>
+  <td>—</td>
+  <td>Sets native light visibility.</td>
+</tr>
+<tr>
+  <td><code>bool IsVisible() const</code></td>
+  <td><code>bool</code></td>
+  <td>Reads native visibility.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note:</strong> Turning on <code>SetCastShadows(true)</code> alone does <strong>not</strong> create shadow maps. A shadow-enabled <code>WorkspaceConfig</code> must also be bound and suitable shadow slots must be configured.</p>
+<h3 id="53-directionallight-sunlight-parallel-light">5.3 <code>DirectionalLight</code> — sunlight / parallel light</h3>
+<p>Inherits all <code>Light</code> operations plus:</p>
+<table>
+<thead>
+<tr>
+  <th>Method</th>
+  <th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>void SetDirection(float x, float y, float z)</code></td>
+  <td>Sets light direction. Rejects zero-length direction; supplied Ogre wrapper normalizes the input.</td>
+</tr>
+<tr>
+  <td><code>LightVector3 GetDirection() const</code></td>
+  <td>Reads the native light direction.</td>
+</tr>
+</tbody>
+</table>
+<p>A directional light does <strong>not</strong> expose position or attenuation properties. Its own transform node is used to represent orientation, and an optional parent can organize its hierarchy.</p>
+<h3 id="54-positionallight-shared-abstract-pointspot-contract">5.4 <code>PositionalLight</code> — shared abstract point/spot contract</h3>
+<p>Inherits <code>Light</code> and adds:</p>
+<table>
+<thead>
+<tr>
+  <th>Method</th>
+  <th>What it does</th>
+  <th>Constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>void SetPosition(float x, float y, float z)</code></td>
+  <td>Sets the dedicated transform node's <strong>local</strong> position.</td>
+  <td>No extra numeric validation in wrapper.</td>
+</tr>
+<tr>
+  <td><code>LightVector3 GetPosition() const</code></td>
+  <td>Reads local position from that transform node.</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td><code>void SetAttenuation(float range, float constant, float linear, float quadratic)</code></td>
+  <td>Explicitly sets attenuation range and three coefficients.</td>
+  <td>Range &gt; 0; coefficients &gt;= 0; at least one coefficient &gt; 0.</td>
+</tr>
+<tr>
+  <td><code>void SetAttenuationByRadius(float radius, float threshold)</code></td>
+  <td>Requests Ogre's radius-based attenuation configuration.</td>
+  <td>Radius &gt; 0; 0 &lt; threshold &lt; 1.</td>
+</tr>
+<tr>
+  <td><code>AttenuationProperties GetAttenuation() const</code></td>
+  <td>Reads native range and three attenuation coefficients.</td>
+  <td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="55-pointlight-omnidirectional-positional-light">5.5 <code>PointLight</code> — omnidirectional positional light</h3>
+<p><code>PointLight</code> is an empty specialization of <code>PositionalLight</code>: it has <strong>all common Light methods</strong> plus <strong>all PositionalLight methods</strong>, with no extra public methods. Its native Ogre light type is <code>LT_POINT</code>.</p>
+<h3 id="56-spotlight-cone-shaped-positional-light">5.6 <code>SpotLight</code> — cone-shaped positional light</h3>
+<p>Inherits all <code>Light</code> and <code>PositionalLight</code> methods, plus:</p>
+<table>
+<thead>
+<tr>
+  <th>Method</th>
+  <th>What it does</th>
+  <th>Constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>void SetDirection(float x, float y, float z)</code></td>
+  <td>Sets spotlight direction via native Ogre light.</td>
+  <td>Zero vector rejected; normalized by wrapper.</td>
+</tr>
+<tr>
+  <td><code>LightVector3 GetDirection() const</code></td>
+  <td>Reads native direction.</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td><code>void SetSpotlightRange(float innerAngleDegrees, float outerAngleDegrees, float falloff = 1.0f)</code></td>
+  <td>Sets inner cone, outer cone and transition falloff.</td>
+  <td>Inner &gt;= 0; outer &gt;= inner; outer &lt; 180 degrees; falloff &gt; 0.</td>
+</tr>
+<tr>
+  <td><code>float GetSpotlightInnerAngle() const</code></td>
+  <td>Reads inner cone angle in degrees.</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td><code>float GetSpotlightOuterAngle() const</code></td>
+  <td>Reads outer cone angle in degrees.</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td><code>float GetSpotlightFalloff() const</code></td>
+  <td>Reads falloff value.</td>
+  <td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Direction coordinate caution:</strong> <code>GetDirection()</code>/<code>SetDirection()</code> are direct wrappers of Ogre light direction behavior; unlike <code>SetPosition()</code>, the public contract does not provide a separate world/local direction selector. Ogre may use the attached transform node's orientation. Test nested-node direction behavior in the Sandbox if the distinction matters to gameplay.</p>
+<hr />
+<h2 id="6-ambient-illumination-api">6. Ambient illumination API</h2>
+<p><strong>Type:</strong> <code>AmbientLightProperties</code> (declared in <code>SceneManager.h</code>).</p>
+<pre><code class="language-cpp">struct AmbientLightProperties
+{
+    LightColor UpperColor{ 0.0f, 0.0f, 0.0f };
+    LightColor LowerColor{ 0.0f, 0.0f, 0.0f };
+    LightVector3 HemisphereDirection{ 0.0f, 1.0f, 0.0f };
+    float EnvironmentScale = 1.0f;
+};
+</code></pre>
+<table>
+<thead>
+<tr>
+  <th>Property</th>
+  <th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>UpperColor</code></td>
+  <td>Ambient color of the upper hemisphere.</td>
+</tr>
+<tr>
+  <td><code>LowerColor</code></td>
+  <td>Ambient color of the lower hemisphere.</td>
+</tr>
+<tr>
+  <td><code>HemisphereDirection</code></td>
+  <td>Direction defining the upper/lower hemispheres. Must be nonzero when setting.</td>
+</tr>
+<tr>
+  <td><code>EnvironmentScale</code></td>
+  <td>Ambient environment scale; must be nonnegative.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Public operations:</strong> <code>SceneManager::SetAmbientLight(properties)</code> and <code>GetAmbientLight()</code>.</p>
+<p>The Ogre backend forwards this information to native <code>Ogre::SceneManager::setAmbientLight()</code> and its matching native getters. This is <strong>hemisphere ambient lighting</strong>, not a global-illumination solver, sky environment texture system, or a separate <code>IlluminationManager</code>.</p>
+<hr />
+<h2 id="7-shadow-configuration-api">7. Shadow configuration API</h2>
+<p><strong>Header:</strong> <code>Contracts/RenderSystem/Shadow.h</code>.</p>
+<h3 id="71-shadowfilter">7.1 <code>ShadowFilter</code></h3>
+<pre><code class="language-cpp">enum class ShadowFilter
+{
+    PCF_2x2, PCF_3x3, PCF_4x4, PCF_5x5, PCF_6x6, ESM
+};
+</code></pre>
+<p>PCF options select a percentage-closer filtering variant for PBS shadow sampling; <code>ESM</code> requests exponential shadow maps and enables the <code>EsmK</code> setting. Filter selection is coordinated with the Ogre HLMS PBS/Unlit providers, rather than configured per material.</p>
+<h3 id="72-shadowsettings-fields-and-defaults">7.2 <code>ShadowSettings</code> fields and defaults</h3>
+<table>
+<thead>
+<tr>
+  <th>Field (<code>type</code>)</th>
+  <th style="text-align:right">Default</th>
+  <th>What it configures</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>DirectionalResolution</code> (<code>uint32_t</code>)</td>
+  <td style="text-align:right"><code>2048</code></td>
+  <td>Shadow-map resolution per directional PSSM split. <code>0</code> disables directional shadows.</td>
+</tr>
+<tr>
+  <td><code>SpotResolution</code> (<code>uint32_t</code>)</td>
+  <td style="text-align:right"><code>1024</code></td>
+  <td>Resolution of each configured spot shadow-map slot.</td>
+</tr>
+<tr>
+  <td><code>PointResolution</code> (<code>uint32_t</code>)</td>
+  <td style="text-align:right"><code>512</code></td>
+  <td>Resolution of each configured point shadow-map slot / point-light helper input.</td>
+</tr>
+<tr>
+  <td><code>PssmSplits</code> (<code>uint8_t</code>)</td>
+  <td style="text-align:right"><code>3</code></td>
+  <td>Directional PSSM cascade count; must be 2–4 when directional maps are enabled.</td>
+</tr>
+<tr>
+  <td><code>MaxSpotLights</code> (<code>uint8_t</code>)</td>
+  <td style="text-align:right"><code>2</code></td>
+  <td>Number of spot-shadow slots; 0 disables spot shadows.</td>
+</tr>
+<tr>
+  <td><code>MaxPointLights</code> (<code>uint8_t</code>)</td>
+  <td style="text-align:right"><code>1</code></td>
+  <td>Number of point-shadow slots; 0 disables point shadows.</td>
+</tr>
+<tr>
+  <td><code>PssmLambda</code> (<code>float</code>)</td>
+  <td style="text-align:right"><code>0.95</code></td>
+  <td>Distribution parameter for directional cascade splits (0–1).</td>
+</tr>
+<tr>
+  <td><code>SplitPadding</code> (<code>float</code>)</td>
+  <td style="text-align:right"><code>1.0</code></td>
+  <td>Extra padding for split calculations; &gt;= 0.</td>
+</tr>
+<tr>
+  <td><code>SplitBlend</code> (<code>float</code>)</td>
+  <td style="text-align:right"><code>0.125</code></td>
+  <td>Cascade blend setting (0–1).</td>
+</tr>
+<tr>
+  <td><code>SplitFade</code> (<code>float</code>)</td>
+  <td style="text-align:right"><code>0.313</code></td>
+  <td>Cascade fade setting (0–1).</td>
+</tr>
+<tr>
+  <td><code>Filter</code> (<code>ShadowFilter</code>)</td>
+  <td style="text-align:right"><code>PCF_3x3</code></td>
+  <td>PBS shadow filter mode.</td>
+</tr>
+<tr>
+  <td><code>EsmK</code> (<code>uint16_t</code>)</td>
+  <td style="text-align:right"><code>600</code></td>
+  <td>Exponential-shadow-map tuning value; must be &gt; 0 for ESM.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="73-validation-performed-by-ogrerenderer">7.3 Validation performed by <code>OgreRenderer</code></h3>
+<ul>
+<li>If an enabled category requires a resolution, it must be in <code>1..8192</code>.</li>
+<li>If directional shadow mapping is enabled, <code>PssmSplits</code> must be in <code>2..4</code>.</li>
+<li><code>MaxSpotLights + MaxPointLights &lt;= 16</code>.</li>
+<li>The configuration must request <strong>at least one</strong> shadow-map category (directional, spot, or point).</li>
+<li><code>PssmLambda</code>, <code>SplitBlend</code>, <code>SplitFade</code> must each be <code>0..1</code>; <code>SplitPadding &gt;= 0</code>.</li>
+<li>When <code>Filter == ShadowFilter::ESM</code>, <code>EsmK</code> must be positive.</li>
+</ul>
+<h3 id="74-what-the-backend-creates">7.4 What the backend creates</h3>
+<ul>
+<li>A PSSM directional shadow parameter group if <code>DirectionalResolution &gt; 0</code>.</li>
+<li>One focused shadow parameter per requested spot-shadow slot.</li>
+<li>One focused shadow parameter per requested point-shadow slot.</li>
+<li>A compositor shadow-node definition through Ogre's <code>ShadowNodeHelper</code>.</li>
+<li>A shadow-aware compositor workspace definition referencing that shadow node.</li>
+<li>Matching HLMS PBS/Unlit filtering configuration via <code>OgreMaterialSystem::ApplyShadowSettings</code>.</li>
+</ul>
+<p><strong>Not an individual-light API:</strong> <code>ShadowSettings</code> describes workspace shadow capacity and sampling, not a specific light's shadow object. Which actual scene lights cast shadows is controlled separately with <code>Light::SetCastShadows</code> and Ogre's runtime light selection.</p>
+<p><strong>Verification boundary:</strong> The supplied Phase 3 implementation was not verified against a real Ogre SDK build or Vulkan runtime, so configured point/spot/directional shadow output must be visually tested. This reference describes what the code is written to request, not guaranteed successful runtime rendering.</p>
+<hr />
+<h2 id="8-materialsystem-api">8. MaterialSystem API</h2>
+<p><strong>Header:</strong> <code>Contracts/RenderSystem/MaterialSystem.h</code><br />
+<strong>Creation:</strong> <code>Owner&lt;MaterialSystem&gt; CreateMaterialSystem(const std::string&amp; hlmsPath);</code></p>
+<p><code>hlmsPath</code> points to the Ogre media root containing the <code>Hlms</code> folder; the backend registers/reuses Ogre Unlit and PBS HLMS providers.</p>
+<h3 id="81-types">8.1 Types</h3>
+<table>
+<thead>
+<tr>
+  <th>Type</th>
+  <th>Members</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>enum class MaterialType</code></td>
+  <td><code>Unlit</code>, <code>PBS</code></td>
+</tr>
+<tr>
+  <td><code>enum class MaterialTexture</code></td>
+  <td><code>BaseColor</code>, <code>Normal</code>, <code>Roughness</code>, <code>Metalness</code></td>
+</tr>
+<tr>
+  <td><code>struct MaterialColor</code></td>
+  <td><code>float R=1</code>, <code>G=1</code>, <code>B=1</code>, <code>A=1</code></td>
+</tr>
+<tr>
+  <td><code>using MaterialHandle</code></td>
+  <td><code>std::uint64_t</code></td>
+</tr>
+<tr>
+  <td><code>InvalidMaterial</code></td>
+  <td><code>0</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="82-registration-lookup-destruction">8.2 Registration, lookup, destruction</h3>
+<table>
+<thead>
+<tr>
+  <th>Method</th>
+  <th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>MaterialHandle RegisterMaterial(MaterialType type, const std::string&amp; name)</code></td>
+  <td>Creates a named Unlit or PBS native datablock; returns handle. Rejects empty or duplicate name. PBS starts with metallic workflow, roughness 0.5 and metalness 0.</td>
+</tr>
+<tr>
+  <td><code>MaterialHandle GetMaterial(const std::string&amp; name) const</code></td>
+  <td>Returns handle or <code>InvalidMaterial</code> if not found.</td>
+</tr>
+<tr>
+  <td><code>void DestroyMaterial(MaterialHandle material)</code></td>
+  <td>Destroys datablock/registration; refuses when linked renderables still use it.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="83-surface-properties-and-textures">8.3 Surface properties and textures</h3>
+<table>
+<thead>
+<tr>
+  <th>Method</th>
+  <th>What it does</th>
+  <th>Applicability / constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>void SetColor(MaterialHandle material, const MaterialColor&amp; color)</code></td>
+  <td>Sets Unlit color or PBS diffuse RGB.</td>
+  <td>For PBS, native call uses RGB; alpha is not forwarded in the supplied setter.</td>
+</tr>
+<tr>
+  <td><code>void SetRoughness(MaterialHandle material, float roughness)</code></td>
+  <td>Sets PBS surface roughness.</td>
+  <td>PBS only; <strong>(0, 1]</strong>.</td>
+</tr>
+<tr>
+  <td><code>void SetMetalness(MaterialHandle material, float metalness)</code></td>
+  <td>Sets PBS surface metalness.</td>
+  <td>PBS only; <strong>[0, 1]</strong>.</td>
+</tr>
+<tr>
+  <td><code>void SetTexture(MaterialHandle material, MaterialTexture slot, const std::string&amp; filename)</code></td>
+  <td>Binds named Ogre texture to selected slot.</td>
+  <td>Unlit supports <code>BaseColor</code> only. PBS supports all four declared slots.</td>
+</tr>
+<tr>
+  <td><code>void SetReceiveShadows(MaterialHandle material, bool enabled)</code></td>
+  <td>Enables/disables shadow reception on a PBS datablock.</td>
+  <td>PBS only; <strong>no public getter</strong> exists in supplied API.</td>
+</tr>
+</tbody>
+</table>
+<p>The public material texture API takes a <strong>filename</strong>, not a <code>ResourceHandle</code>. The <code>ResourceManager</code> separately returns handles for loaded textures; this distinction exists in the supplied code and is not silently normalized here.</p>
+<h3 id="84-material-vs-light-vs-item-shadow-controls">8.4 Material vs. light vs. item shadow controls</h3>
+<table>
+<thead>
+<tr>
+  <th>API</th>
+  <th>Controls</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>Light::SetCastShadows(true)</code></td>
+  <td>Whether the light can contribute shadow maps.</td>
+</tr>
+<tr>
+  <td><code>SceneManager::SetItemCastShadows(item, true)</code></td>
+  <td>Whether a mesh item casts shadows.</td>
+</tr>
+<tr>
+  <td><code>MaterialSystem::SetReceiveShadows(material, true)</code></td>
+  <td>Whether a PBS surface receives shadows.</td>
+</tr>
+<tr>
+  <td><code>WorkspaceConfig::Shadows</code></td>
+  <td>Whether the active compositor workspace has a shadow-rendering pipeline and its capacity/filtering.</td>
+</tr>
+</tbody>
+</table>
+<p>All four concepts are different; enabling one does not substitute for enabling the others.</p>
+<hr />
+<h2 id="9-resourcemanager-api">9. ResourceManager API</h2>
+<p><strong>Header:</strong> <code>Contracts/RenderSystem/ResourceManager.h</code><br />
+<strong>Access:</strong> <code>ResourceManager::Get()</code> singleton; <code>ResourceManager::Shutdown()</code> destroys its singleton instance.</p>
+<h3 id="91-types">9.1 Types</h3>
+<table>
+<thead>
+<tr>
+  <th>Type</th>
+  <th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>using ResourceHandle</code></td>
+  <td><code>std::uint64_t</code></td>
+</tr>
+<tr>
+  <td><code>InvalidResource</code></td>
+  <td><code>0</code></td>
+</tr>
+<tr>
+  <td><code>enum class TextureUsage</code></td>
+  <td><code>ColorSRGB</code>, <code>Linear</code>, <code>Normal</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="92-resource-group-and-loading-methods">9.2 Resource group and loading methods</h3>
+<table>
+<thead>
+<tr>
+  <th>Method</th>
+  <th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>static ResourceManager&amp; Get()</code></td>
+  <td>Lazily constructs/returns current resource manager, requiring an initialized Ogre render system.</td>
+</tr>
+<tr>
+  <td><code>static void Shutdown()</code></td>
+  <td>Releases the singleton wrapper/registry. It is not an automatic deep eviction of all Ogre native resources.</td>
+</tr>
+<tr>
+  <td><code>void AddResourceLocation(const std::string&amp; path, const std::string&amp; group = &quot;General&quot;, bool recursive = false)</code></td>
+  <td>Adds an existing filesystem folder to an Ogre resource group; optionally recurses.</td>
+</tr>
+<tr>
+  <td><code>ResourceHandle LoadMesh(const std::string&amp; name, const std::string&amp; group = &quot;General&quot;)</code></td>
+  <td>Looks up or loads a mesh, then returns its registered handle.</td>
+</tr>
+<tr>
+  <td><code>ResourceHandle LoadTexture(const std::string&amp; name, const std::string&amp; group = &quot;General&quot;, TextureUsage usage = TextureUsage::ColorSRGB)</code></td>
+  <td>Looks up or loads a texture, applying usage-specific flags; waits for texture data to be ready in the supplied backend.</td>
+</tr>
+<tr>
+  <td><code>ResourceHandle GetMesh(const std::string&amp; name, const std::string&amp; group = &quot;General&quot;) const</code></td>
+  <td>Looks up registered mesh handle or returns <code>InvalidResource</code>.</td>
+</tr>
+<tr>
+  <td><code>ResourceHandle GetTexture(const std::string&amp; name, const std::string&amp; group = &quot;General&quot;) const</code></td>
+  <td>Looks up registered texture handle or returns <code>InvalidResource</code>.</td>
+</tr>
+<tr>
+  <td><code>bool HasResource(ResourceHandle handle) const</code></td>
+  <td>Checks whether the handle is still registered.</td>
+</tr>
+<tr>
+  <td><code>void ReleaseResource(ResourceHandle handle)</code></td>
+  <td>Removes a registration. The backend intentionally does not forcibly destroy native resources still referenced by other objects.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="93-resource-behavior">9.3 Resource behavior</h3>
+<ul>
+<li>Handles are assigned locally in the manager and cached by <code>(group, name)</code>.</li>
+<li>Loading the same registered resource returns the existing handle.</li>
+<li>Re-loading a texture with a different <code>TextureUsage</code> throws.</li>
+<li>The supplied Ogre implementation rejects ambiguous reuse of the same texture filename across different groups.</li>
+<li><code>LoadTexture()</code> currently waits for texture residency/data; it is <strong>synchronous</strong> from the caller's point of view.</li>
+<li>Releasing a registration is not the same operation as guaranteed GPU-memory eviction.</li>
+</ul>
+<hr />
+<h2 id="10-concrete-ogre-classes-internalbackend-apis">10. Concrete Ogre classes (internal/backend APIs)</h2>
+<p>This section is for engine contributors. Most client code should use the <code>Contracts/RenderSystem/...</code> headers instead of including <code>Concrete/.../Ogre</code> headers.</p>
+<h3 id="101-ogrerenderer-final-renderer">10.1 <code>OgreRenderer final : Renderer</code></h3>
+<p><strong>Files:</strong> <code>Concrete/RenderSystem/Ogre/OgreRenderer.h/.cpp</code></p>
+<p><strong>Public overrides:</strong> <code>SetScene(scene, camera)</code>, <code>SetScene(scene, camera, config)</code>, <code>ClearScene</code>, <code>OnWindowResize</code>, <code>OnUpdate</code>, destructor. These implement the matching public contract (Section 2).</p>
+<p><strong>Private methods:</strong></p>
+<table>
+<thead>
+<tr>
+  <th>Method</th>
+  <th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>explicit OgreRenderer(Window* window)</code></td>
+  <td>Initializes Ogre Root, installs Vulkan plugin, chooses render system, creates external window, initializes compositor. Constructed through <code>RendererBuilder</code>.</td>
+</tr>
+<tr>
+  <td><code>void InitWindow(Window* window)</code></td>
+  <td>Obtains native Win32 GLFW window handle and creates Ogre external render window.</td>
+</tr>
+<tr>
+  <td><code>void CreateShadowNode(const std::string&amp; name, const ShadowSettings&amp; settings)</code></td>
+  <td>Validates settings and translates them to Ogre <code>ShadowNodeHelper</code> parameters.</td>
+</tr>
+<tr>
+  <td><code>void Shutdown()</code></td>
+  <td>Removes active workspace, destroys render window, releases Ogre Root and Vulkan plugin.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Held state:</strong> <code>Owner&lt;Ogre::VulkanPlugin&gt; m_VulkanPlugin</code>, <code>Owner&lt;Ogre::Root&gt; m_Root</code>, native render window pointer, compositor pointer, workspace pointer, generated workspace/shadow-node names, monotonically increasing workspace id.</p>
+<p><strong>Backend limits:</strong> The supplied <code>InitWindow()</code> currently supports the Windows GLFW native handle branch; the selected rendering API is Vulkan. Basic workspace background color is hard-coded in the implementation. One compositor workspace is active at a time.</p>
+<h3 id="102-ogrescenemanager-final-scenemanager">10.2 <code>OgreSceneManager final : SceneManager</code></h3>
+<p><strong>Files:</strong> <code>Concrete/RenderSystem/Ogre/SceneManager.h/.cpp</code></p>
+<p><strong>Public overrides:</strong> all camera, light, ambient, node, item and shadow-casting methods from Section 3.</p>
+<p><strong>Backend-only getters:</strong></p>
+<table>
+<thead>
+<tr>
+  <th>Method</th>
+  <th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>Ogre::SceneManager* GetOgreSceneManager() const</code></td>
+  <td>Lets renderer access native Ogre scene during workspace creation.</td>
+</tr>
+<tr>
+  <td><code>OgreMaterialSystem* GetOgreMaterialSystem() const</code></td>
+  <td>Lets renderer coordinate PBS/Unlit shadow settings with material backend.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Private helpers:</strong> <code>Light* CreateLight(name, parent, type)</code> (shared creation routine, <strong>not a factory object</strong>); <code>Ogre::SceneNode* RequireNode(handle) const</code>; <code>Ogre::Item* RequireItem(handle) const</code>.</p>
+<p><strong>Record types maintained internally:</strong></p>
+<ul>
+<li><code>CameraRecord</code>: <code>Owner&lt;Camera&gt; Wrapper</code>, <code>Ogre::Camera* Native</code>.</li>
+<li><code>LightRecord</code>: <code>Owner&lt;Light&gt; Wrapper</code>, <code>Ogre::Light* Native</code>, <code>Ogre::SceneNode* TransformNode</code>.</li>
+<li><code>NodeRecord</code>: node name and <code>Ogre::SceneNode* Native</code>.</li>
+<li><code>ItemRecord</code>: item name and <code>Ogre::Item* Native</code>.</li>
+</ul>
+<p><strong>Registries:</strong> cameras/lights by name, nodes/items by numeric handle, plus node/item name→handle maps. Node/item counters start at 1. Native scene and material-system pointers are non-owning in this class. The destructor clears records and destroys native Ogre scene; its comment requires compositor workspaces using the scene to be removed first.</p>
+<h3 id="103-ogrecamera-final-camera">10.3 <code>OgreCamera final : Camera</code></h3>
+<p><strong>Files:</strong> Original <code>RenderSystem/Ogre/Camera.h/.cpp</code>.</p>
+<p>Implements every <code>Camera</code> method in Section 4 by forwarding to a <strong>non-owning</strong> <code>Ogre::Camera*</code>. A backend-only <code>Ogre::Camera* GetOgreCamera() const</code> lets <code>OgreRenderer</code> obtain the native camera for workspace binding. The constructor validates non-null native camera pointer.</p>
+<h3 id="104-ogrelightcommon-and-final-light-wrappers">10.4 <code>OgreLightCommon</code> and final light wrappers</h3>
+<p><strong>Files:</strong> <code>Concrete/RenderSystem/Ogre/Light.h/.cpp</code>.</p>
+<p><code>OgreLightCommon</code> is a <strong>shared implementation helper</strong>, not a public polymorphic <code>Light</code> base and not a native-object owner. It stores non-owning <code>Ogre::Light* m_Light</code> and <code>Ogre::SceneNode* m_Node</code>.</p>
+<p><strong>Helper methods:</strong> <code>SetDiffuseColor</code>, <code>GetDiffuseColor</code>, <code>SetSpecularColor</code>, <code>GetSpecularColor</code>, <code>SetPowerScale</code>, <code>GetPowerScale</code>, <code>SetCastShadows</code>, <code>GetCastShadows</code>, <code>SetVisible</code>, <code>IsVisible</code>, <code>SetPosition</code>, <code>GetPosition</code>, <code>SetDirection</code>, <code>GetDirection</code>, <code>SetAttenuation</code>, <code>SetAttenuationByRadius</code>, <code>GetAttenuation</code>, <code>SetSpotlightRange</code>, <code>GetSpotlightInnerAngle</code>, <code>GetSpotlightOuterAngle</code>, <code>GetSpotlightFalloff</code>.</p>
+<table>
+<thead>
+<tr>
+  <th>Concrete class</th>
+  <th>Public contract</th>
+  <th>Delegates</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>OgreDirectionalLight final</code></td>
+  <td><code>DirectionalLight</code></td>
+  <td>All common properties + direction to <code>m_Common</code>. <code>GetType()</code> returns <code>Directional</code>.</td>
+</tr>
+<tr>
+  <td><code>OgrePointLight final</code></td>
+  <td><code>PointLight</code></td>
+  <td>All common properties + position and attenuation. <code>GetType()</code> returns <code>Point</code>.</td>
+</tr>
+<tr>
+  <td><code>OgreSpotLight final</code></td>
+  <td><code>SpotLight</code></td>
+  <td>All common properties + position, attenuation, direction and cone settings. <code>GetType()</code> returns <code>Spot</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>The native light type is assigned in <code>OgreSceneManager::CreateLight</code> as <code>LT_DIRECTIONAL</code>, <code>LT_POINT</code>, or <code>LT_SPOTLIGHT</code>. The scene manager owns the native light and its dedicated child transform node.</p>
+<h3 id="105-ogrematerialsystem-materialsystem">10.5 <code>OgreMaterialSystem : MaterialSystem</code></h3>
+<p><strong>Files:</strong> <code>Concrete/RenderSystem/Ogre/MaterialSystem.h/.cpp</code>.</p>
+<p><strong>Public overrides:</strong> all methods in Section 8. Also exposes backend-only methods:</p>
+<table>
+<thead>
+<tr>
+  <th>Method</th>
+  <th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>void ApplyShadowSettings(const ShadowSettings&amp; settings)</code></td>
+  <td>Maps <code>ShadowFilter</code> to Ogre PBS filter, configures Unlit ESM toggle and ESM K as applicable. Renderer calls it while selecting the workspace; client code does not need to.</td>
+</tr>
+<tr>
+  <td><code>Ogre::HlmsDatablock* GetOgreDatablock(MaterialHandle material) const</code></td>
+  <td>Gives OgreSceneManager the native datablock used when applying materials to renderables.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Private helpers:</strong> <code>MaterialRecord&amp; Require(handle)</code> and its const overload validate handles. <code>MaterialRecord</code> stores material type, name, and native datablock pointer.</p>
+<p><strong>Held state:</strong> <code>Ogre::HlmsManager*</code>, <code>Ogre::HlmsPbs*</code>, <code>Ogre::HlmsUnlit*</code>, handle→material records, name→handle map, next handle counter.</p>
+<p><strong>Shared-state note:</strong> PBS/Unlit filter settings apply to their <strong>HLMS instances</strong>, not independently per workspace/material. Avoid expecting two active workspaces to use incompatible filter settings through the same shared provider.</p>
+<h3 id="106-ogreresourcemanager-final-resourcemanager">10.6 <code>OgreResourceManager final : ResourceManager</code></h3>
+<p><strong>Files:</strong> Original <code>RenderSystem/Ogre/ResourceManager.h/.cpp</code>.</p>
+<p><strong>Public overrides:</strong> all methods in Section 9. Backend-only native access:</p>
+<table>
+<thead>
+<tr>
+  <th>Method</th>
+  <th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>Ogre::MeshPtr GetOgreMesh(ResourceHandle handle) const</code></td>
+  <td>Validates mesh handle and returns native mesh used by <code>OgreSceneManager::CreateItem</code>.</td>
+</tr>
+<tr>
+  <td><code>Ogre::TextureGpu* GetOgreTexture(ResourceHandle handle) const</code></td>
+  <td>Validates texture handle and returns native GPU texture pointer.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Private helpers:</strong> <code>MakeKey(name, group)</code>, <code>PrepareGroup(group)</code>, <code>Require(handle, Kind type)</code>. <code>ResourceRecord</code> tracks mesh or texture kind, filename, group, texture usage and native resource.</p>
+<p><strong>Held state:</strong> native resource-group manager, native texture manager, handle→resource map, resource-name caches and next handle counter.</p>
+<h3 id="107-public-construction-vs-backend-construction">10.7 Public construction vs. backend construction</h3>
+<table>
+<thead>
+<tr>
+  <th>Public entry point</th>
+  <th>Internal construction target</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>RendererBuilder::Build()</code></td>
+  <td><code>OgreRenderer</code> through <code>BuildRenderer</code></td>
+</tr>
+<tr>
+  <td><code>CreateSceneManager(...)</code></td>
+  <td><code>OgreSceneManager</code></td>
+</tr>
+<tr>
+  <td><code>CreateMaterialSystem(hlmsPath)</code></td>
+  <td><code>OgreMaterialSystem</code></td>
+</tr>
+<tr>
+  <td><code>ResourceManager::Get()</code></td>
+  <td>Lazily constructed <code>OgreResourceManager</code></td>
+</tr>
+<tr>
+  <td><code>SceneManager::CreateCamera(name)</code></td>
+  <td><code>OgreCamera</code> wrapper + native Ogre camera</td>
+</tr>
+<tr>
+  <td><code>SceneManager::Create*Light(name, parent)</code></td>
+  <td>Typed Ogre light wrapper + native light and private node</td>
+</tr>
+</tbody>
+</table>
+<p>No independent camera/light/shadow factory object is required by the supplied API.</p>
+<hr />
+<h2 id="11-typical-usage-sequences">11. Typical usage sequences</h2>
+<p>The examples below use engine objects (<code>window</code>, <code>renderer</code>, <code>materials</code>) whose creation/dependencies are intentionally shown only where relevant. Names and property signatures match the supplied contracts.</p>
+<h3 id="111-create-scene-camera-geometry-and-pbs-material">11.1 Create scene, camera, geometry and PBS material</h3>
+<pre><code class="language-cpp">// Renderer is created from an existing plagc Window*.
+auto renderer = RendererBuilder().WindowHandle(window).Build();
+auto materials = CreateMaterialSystem(hlmsMediaRoot);
+auto scene = CreateSceneManager(&quot;Demo&quot;, *materials);
+
+ResourceManager&amp; resources = ResourceManager::Get();
+resources.AddResourceLocation(assetDirectory);
+ResourceHandle mesh = resources.LoadMesh(&quot;Cube.mesh&quot;);
+
+SceneNodeHandle node = scene-&gt;CreateNode(&quot;CubeNode&quot;);
+SceneItemHandle item = scene-&gt;CreateItem(&quot;Cube&quot;, mesh, node);
+MaterialHandle stone = materials-&gt;RegisterMaterial(MaterialType::PBS, &quot;Stone&quot;);
+materials-&gt;SetColor(stone, { 0.8f, 0.7f, 0.6f, 1.0f });
+materials-&gt;SetRoughness(stone, 0.65f);
+materials-&gt;SetMetalness(stone, 0.0f);
+scene-&gt;SetMaterial(item, stone);
+
+Camera* camera = scene-&gt;CreateCamera(&quot;MainCamera&quot;);
+camera-&gt;SetPosition(0.0f, 2.0f, 8.0f);
+camera-&gt;LookAt(0.0f, 0.0f, 0.0f);
+camera-&gt;SetPerspective(60.0f, 16.0f / 9.0f, 0.1f, 1000.0f);
+renderer-&gt;SetScene(*scene, *camera);
+</code></pre>
+<p><em>Asset filenames, mesh format and media folder layout must match the actual project. Do not treat the example path names as verified available assets.</em></p>
+<h3 id="112-add-all-three-light-types">11.2 Add all three light types</h3>
+<pre><code class="language-cpp">SceneNodeHandle room = scene-&gt;CreateNode(&quot;Room&quot;);
+
+auto* sun = scene-&gt;CreateDirectionalLight(&quot;Sun&quot;);
+sun-&gt;SetDirection(-0.5f, -1.0f, -0.5f);
+sun-&gt;SetDiffuseColor({ 1.0f, 0.94f, 0.85f });
+sun-&gt;SetPowerScale(2.0f);
+sun-&gt;SetCastShadows(true);
+
+auto* lamp = scene-&gt;CreatePointLight(&quot;Lamp&quot;, room);
+lamp-&gt;SetPosition(0.0f, 3.0f, 0.0f);
+lamp-&gt;SetAttenuationByRadius(10.0f, 0.01f);
+lamp-&gt;SetDiffuseColor({ 1.0f, 0.72f, 0.45f });
+
+auto* torch = scene-&gt;CreateSpotLight(&quot;Torch&quot;, room);
+torch-&gt;SetPosition(2.0f, 3.0f, 0.0f);
+torch-&gt;SetDirection(0.0f, -1.0f, 0.0f);
+torch-&gt;SetSpotlightRange(20.0f, 35.0f, 1.0f);
+</code></pre>
+<h3 id="113-configure-ambient-hemisphere-light">11.3 Configure ambient hemisphere light</h3>
+<pre><code class="language-cpp">AmbientLightProperties ambient;
+ambient.UpperColor = { 0.4f, 0.5f, 0.65f };
+ambient.LowerColor = { 0.1f, 0.08f, 0.06f };
+ambient.HemisphereDirection = { 0.0f, 1.0f, 0.0f };
+ambient.EnvironmentScale = 1.0f;
+scene-&gt;SetAmbientLight(ambient);
+</code></pre>
+<h3 id="114-enable-shadows-for-the-current-workspace">11.4 Enable shadows for the current workspace</h3>
+<pre><code class="language-cpp">scene-&gt;SetItemCastShadows(item, true);
+materials-&gt;SetReceiveShadows(stone, true);
+sun-&gt;SetCastShadows(true);
+
+WorkspaceConfig config;
+config.Shadows = ShadowSettings{};
+config.Shadows-&gt;DirectionalResolution = 2048;
+config.Shadows-&gt;PssmSplits = 3;
+config.Shadows-&gt;Filter = ShadowFilter::PCF_3x3;
+
+renderer-&gt;SetScene(*scene, *camera, config);
+</code></pre>
+<h3 id="115-change-or-disable-shadows">11.5 Change or disable shadows</h3>
+<pre><code class="language-cpp">// Changes to structural shadow settings require a new workspace.
+config.Shadows-&gt;DirectionalResolution = 4096;
+renderer-&gt;SetScene(*scene, *camera, config);
+
+// Revert to a basic no-shadow workspace without removing scene contents.
+renderer-&gt;SetScene(*scene, *camera);
+</code></pre>
+<h3 id="116-basic-rendering-and-cleanup-pattern">11.6 Basic rendering and cleanup pattern</h3>
+<pre><code class="language-cpp">// In your application's frame loop:
+renderer-&gt;OnUpdate();
+
+// Once rendering is finished, destroy scene dependencies in safe order:
+renderer-&gt;ClearScene();
+scene.reset();
+materials.reset();
+ResourceManager::Shutdown();
+renderer.reset();
+</code></pre>
+<p>This cleanup sketch assumes no other scenes/material users remain and that renderer owns the active Ogre Root. Destroying materials before all linked items are gone is invalid; destroying the renderer/root before scenes and material/resource managers is unsafe.</p>
+<hr />
+<h2 id="12-lifecycle-errors-and-limits">12. Lifecycle, errors and limits</h2>
+<h3 id="121-return-conventions">12.1 Return conventions</h3>
+<table>
+<thead>
+<tr>
+  <th>API family</th>
+  <th>Missing-object behavior</th>
+  <th>Invalid-operation behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>GetCamera</code> / <code>GetLight</code> / typed <code>Get*Light</code></td>
+  <td><code>nullptr</code></td>
+  <td>Typed getters also return <code>nullptr</code> on type mismatch.</td>
+</tr>
+<tr>
+  <td><code>GetNode</code> / <code>GetItem</code></td>
+  <td><code>InvalidSceneNode</code> / <code>InvalidSceneItem</code></td>
+  <td>—</td>
+</tr>
+<tr>
+  <td><code>GetMaterial</code> / <code>GetMesh</code> / <code>GetTexture</code></td>
+  <td><code>InvalidMaterial</code> / <code>InvalidResource</code></td>
+  <td>—</td>
+</tr>
+<tr>
+  <td><code>CreateCamera</code>, <code>CreateLight</code>, <code>CreateNode</code>, <code>CreateItem</code>, <code>RegisterMaterial</code></td>
+  <td>—</td>
+  <td>Throws for invalid/duplicate names or invalid dependencies.</td>
+</tr>
+<tr>
+  <td><code>RequireNode</code>, <code>RequireItem</code>, material/resource handle operations</td>
+  <td>—</td>
+  <td>Throws for invalid/unknown handles.</td>
+</tr>
+<tr>
+  <td>Camera/light property setters</td>
+  <td>—</td>
+  <td>Selected setters validate input; consult Sections 4–7.</td>
+</tr>
+<tr>
+  <td><code>Renderer::SetScene</code></td>
+  <td>—</td>
+  <td>Throws for incompatible Ogre objects, cross-scene camera, bad shadow config or backend creation failure.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="122-lifetimes-and-ordering">12.2 Lifetimes and ordering</h3>
+<ol>
+<li>Create a <code>Renderer</code> (Ogre Root/render system) before Ogre-dependent material, scene or resource manager instances.</li>
+<li>Keep the <code>MaterialSystem</code> alive for as long as scenes created with its reference exist.</li>
+<li>Keep a camera and scene alive while the renderer's active workspace uses them.</li>
+<li>Destroy child items/lights before destroying parent scene nodes.</li>
+<li>Release the compositor workspace with <code>Renderer::ClearScene()</code> before destroying its scene/camera.</li>
+<li>Destroy scenes/items before materials they reference.</li>
+<li>Call <code>ResourceManager::Shutdown()</code> before destroying the Ogre Root/renderer, after resource consumers are finished.</li>
+<li>Do not manually delete borrowed camera/light pointers or backend-owned native objects.</li>
+</ol>
+<h3 id="123-what-is-and-is-not-implemented-in-these-files">12.3 What is and is not implemented in these files</h3>
+<p><strong>Implemented in the supplied API:</strong> directional, point and spot light controls; scene-owned lights; ambient hemisphere color/direction; PBS and Unlit materials; item/material shadow flags; compositor shadow-node/workspace creation; PSSM directional split configuration; configured spot/point shadow slots; PCF and ESM filter selection; handle-based meshes/items/materials/resources; workspace swapping.</p>
+<p><strong>Not provided by the supplied public API:</strong> independent shadow-object factory; dedicated <code>LightingManager</code>; per-light public shadow-map allocation/priority control; light handles (<code>Light*</code> pointers are used); public getters for material shadow reception; public setter for workspace background color; world-space variants of light transform setters; per-workspace independent HLMS filter state; image-based lighting/GI integration; general HDR/bloom/SSAO workspace API.</p>
+<h3 id="124-verification-status">12.4 Verification status</h3>
+<p>The source package notes report C++20 contract and stub-based syntax checks; they do <strong>not</strong> demonstrate a full build against the installed Ogre SDK or actual Vulkan rendering. Therefore, test especially: native shadow-node API compatibility, visible directional/spot/point shadows, texture/material reception, workspace switching, resizing, and lifetime shutdown paths.</p>
+<hr />
+<h2 id="13-header-and-source-index">13. Header and source index</h2>
+<h3 id="public-contract-headers">Public contract headers</h3>
+<table>
+<thead>
+<tr>
+  <th>Header</th>
+  <th>Defines</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>Contracts/RenderSystem/Renderer.h</code></td>
+  <td><code>Renderer</code>, <code>RendererBuilder</code>, <code>WorkspaceConfig</code></td>
+</tr>
+<tr>
+  <td><code>Contracts/RenderSystem/SceneManager.h</code></td>
+  <td><code>SceneManager</code>, scene handles, <code>SceneVector3</code>, <code>AmbientLightProperties</code>, <code>CreateSceneManager</code></td>
+</tr>
+<tr>
+  <td><code>Contracts/RenderSystem/Camera.h</code></td>
+  <td><code>Camera</code>, <code>CameraVector3</code></td>
+</tr>
+<tr>
+  <td><code>Contracts/RenderSystem/Light.h</code></td>
+  <td>Light hierarchy, colors/vectors, attenuation, type enumeration</td>
+</tr>
+<tr>
+  <td><code>Contracts/RenderSystem/Shadow.h</code></td>
+  <td><code>ShadowSettings</code>, <code>ShadowFilter</code></td>
+</tr>
+<tr>
+  <td><code>Contracts/RenderSystem/MaterialSystem.h</code></td>
+  <td><code>MaterialSystem</code>, types, handle and <code>CreateMaterialSystem</code></td>
+</tr>
+<tr>
+  <td><code>Contracts/RenderSystem/ResourceManager.h</code></td>
+  <td><code>ResourceManager</code>, types, handle and singleton operations</td>
+</tr>
+</tbody>
+</table>
+<h3 id="backend-headers-and-sources">Backend headers and sources</h3>
+<table>
+<thead>
+<tr>
+  <th>Implementation files</th>
+  <th>Implements</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>Concrete/RenderSystem/Ogre/OgreRenderer.h/.cpp</code></td>
+  <td>Ogre root, Vulkan plugin, external window, compositor/workspaces, shadow-node definitions</td>
+</tr>
+<tr>
+  <td><code>Concrete/RenderSystem/Ogre/SceneManager.h/.cpp</code></td>
+  <td>Scene-owned cameras, lights, nodes, items, ambient light, shadow casting flags</td>
+</tr>
+<tr>
+  <td><code>Concrete/RenderSystem/Ogre/Light.h/.cpp</code></td>
+  <td><code>OgreLightCommon</code>, final directional/point/spot light wrappers</td>
+</tr>
+<tr>
+  <td><code>Concrete/RenderSystem/Ogre/MaterialSystem.h/.cpp</code></td>
+  <td>PBS/Unlit material datablocks, shadow filtering/reception</td>
+</tr>
+<tr>
+  <td><code>Concrete/RenderSystem/Ogre/Camera.h/.cpp</code></td>
+  <td>Camera wrapper and native camera bridge (from original supplied renderer files)</td>
+</tr>
+<tr>
+  <td><code>Concrete/RenderSystem/Ogre/ResourceManager.h/.cpp</code></td>
+  <td>Mesh/texture resource cache and native bridges (from original supplied renderer files)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Revision note:</strong> This documentation intentionally preserves current names, method signatures, default values, missing getters, and limitations. It is a reference for the supplied code—not a proposal to redesign the API.</p>
+</main></body></html>

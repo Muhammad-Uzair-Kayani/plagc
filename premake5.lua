@@ -43,10 +43,9 @@ workspace "plagc"
     filter {}
 group "Dependencies"
 include "Scripts/premake/GLFW.lua"
-group ""
-
--- Ogre linking helpers (not a Premake source-build project)
 include "Scripts/premake/OGRE.lua"
+createOgreProjects()
+group ""
 
 include "plagc"
 include "Sandbox"

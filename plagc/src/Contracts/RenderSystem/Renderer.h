@@ -1,11 +1,19 @@
 #pragma once
 #include "Core/Core.h"
 #include "Contracts/Platforms/Window.h"
+#include "Contracts/RenderSystem/Shadow.h"
+
+#include <optional>
 
 namespace plagc
 {
     class Camera;
     class SceneManager;
+
+    struct WorkspaceConfig
+    {
+        std::optional<ShadowSettings> Shadows;
+    };
 
     class Renderer
     {
@@ -13,6 +21,7 @@ namespace plagc
         virtual ~Renderer() = default;
 
         virtual void SetScene(SceneManager& scene, Camera& camera) = 0;
+        virtual void SetScene(SceneManager& scene, Camera& camera, const WorkspaceConfig& config) = 0;
         virtual void ClearScene() = 0;
         virtual void OnWindowResize() = 0;
         virtual void OnUpdate() = 0;

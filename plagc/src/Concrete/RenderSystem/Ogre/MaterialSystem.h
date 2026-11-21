@@ -2,6 +2,7 @@
 #pragma once
 
 #include "Contracts/RenderSystem/MaterialSystem.h"
+#include "Contracts/RenderSystem/Shadow.h"
 
 #include <OgreHlmsManager.h>
 #include <OgreHlmsUnlit.h>
@@ -47,11 +48,16 @@ namespace plagc
 			float metalness
 		) override;
 
+		void SetReceiveShadows(MaterialHandle material, bool enabled) override;
+
 		void SetTexture(
 			MaterialHandle material,
 			MaterialTexture slot,
 			const std::string& filename
 		) override;
+
+		// Backend-only: Renderer coordinates shadow settings with its workspace.
+		void ApplyShadowSettings(const ShadowSettings& settings);
 
 		// Backend-only: used later by OgreSceneManager
 		// when assigning a material to an Ogre::SubItem.

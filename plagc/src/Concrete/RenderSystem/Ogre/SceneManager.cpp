@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "SceneManager.h"
 #include "Camera.h"
+#include "Light.h"
 #include "ResourceManager.h"
 #include "MaterialSystem.h"
 
@@ -8,9 +9,12 @@
 #include <OgreSceneManager.h>
 #include <OgreSceneNode.h>
 #include <OgreCamera.h>
+#include <OgreLight.h>
 #include <OgreItem.h>
 #include <OgreSubItem.h>
 #include <OgreHlmsDatablock.h>
+#include <OgreColourValue.h>
+#include <OgreVector3.h>
 
 #include <stdexcept>
 #include <utility>
@@ -35,6 +39,7 @@ namespace plagc
     {
         // Remove compositor workspaces using this scene or its cameras before destroying it.
         m_Cameras.clear();
+        m_Lights.clear();
         m_Items.clear();
         m_Nodes.clear();
         m_ItemsByName.clear();
@@ -74,6 +79,116 @@ namespace plagc
         // The renderer must first remove any workspace using this camera.
         m_SceneManager->destroyCamera(it->second.Native);
         m_Cameras.erase(it);
+    }
+
+    Light* OgreSceneManager::CreateLight(const std::string& name, SceneNodeHandle parent, LightType type)
+    {
+        if (name.empty()) throw std::invalid_argument("Light name cannot be empty");
+        if (m_Lights.contains(name)) throw std::runtime_error("Light already exists: " + name);
+
+        Ogre::SceneNode* parentNode = parent == InvalidSceneNode ? m_SceneManager->getRootSceneNode() : RequireNode(parent);
+        Ogre::SceneNode* transform = parentNode->createChildSceneNode();
+        Ogre::Light* native = nullptr;
+        try
+        {
+            native = m_SceneManager->createLight();
+            transform->attachObject(native);
+            Owner<Light> wrapper;
+            switch (type)
+            {
+            case LightType::Directional:
+                native->setType(Ogre::Light::LT_DIRECTIONAL);
+                wrapper = Owner<Light>(new OgreDirectionalLight(native, transform));
+                break;
+            case LightType::Point:
+                native->setType(Ogre::Light::LT_POINT);
+                wrapper = Owner<Light>(new OgrePointLight(native, transform));
+                break;
+            case LightType::Spot:
+                native->setType(Ogre::Light::LT_SPOTLIGHT);
+                wrapper = Owner<Light>(new OgreSpotLight(native, transform));
+                break;
+            default:
+                throw std::invalid_argument("Unsupported light type");
+            }
+
+            LightRecord record{ std::move(wrapper), native, transform };
+            auto [it, inserted] = m_Lights.emplace(name, std::move(record));
+            return it->second.Wrapper.get();
+        }
+        catch (...)
+        {
+            if (native) m_SceneManager->destroyLight(native);
+            m_SceneManager->destroySceneNode(transform);
+            throw;
+        }
+    }
+
+    DirectionalLight* OgreSceneManager::CreateDirectionalLight(const std::string& name, SceneNodeHandle parent)
+    {
+        return static_cast<DirectionalLight*>(CreateLight(name, parent, LightType::Directional));
+    }
+
+    PointLight* OgreSceneManager::CreatePointLight(const std::string& name, SceneNodeHandle parent)
+    {
+        return static_cast<PointLight*>(CreateLight(name, parent, LightType::Point));
+    }
+
+    SpotLight* OgreSceneManager::CreateSpotLight(const std::string& name, SceneNodeHandle parent)
+    {
+        return static_cast<SpotLight*>(CreateLight(name, parent, LightType::Spot));
+    }
+
+    Light* OgreSceneManager::GetLight(const std::string& name) const
+    {
+        auto it = m_Lights.find(name);
+        return it == m_Lights.end() ? nullptr : it->second.Wrapper.get();
+    }
+
+    DirectionalLight* OgreSceneManager::GetDirectionalLight(const std::string& name) const
+    {
+        return dynamic_cast<DirectionalLight*>(GetLight(name));
+    }
+
+    PointLight* OgreSceneManager::GetPointLight(const std::string& name) const
+    {
+        return dynamic_cast<PointLight*>(GetLight(name));
+    }
+
+    SpotLight* OgreSceneManager::GetSpotLight(const std::string& name) const
+    {
+        return dynamic_cast<SpotLight*>(GetLight(name));
+    }
+
+    void OgreSceneManager::DestroyLight(const std::string& name)
+    {
+        auto it = m_Lights.find(name);
+        if (it == m_Lights.end()) throw std::runtime_error("Unknown light: " + name);
+        m_SceneManager->destroyLight(it->second.Native);
+        m_SceneManager->destroySceneNode(it->second.TransformNode);
+        m_Lights.erase(it);
+    }
+
+    void OgreSceneManager::SetAmbientLight(const AmbientLightProperties& properties)
+    {
+        const Ogre::Vector3 direction(properties.HemisphereDirection.X,
+            properties.HemisphereDirection.Y, properties.HemisphereDirection.Z);
+        if (!(direction.squaredLength() > 0.0f)) throw std::invalid_argument("Ambient hemisphere direction cannot be zero");
+        if (!(properties.EnvironmentScale >= 0.0f)) throw std::invalid_argument("Ambient environment scale must be non-negative");
+
+        m_SceneManager->setAmbientLight(
+            Ogre::ColourValue(properties.UpperColor.R, properties.UpperColor.G, properties.UpperColor.B),
+            Ogre::ColourValue(properties.LowerColor.R, properties.LowerColor.G, properties.LowerColor.B),
+            direction, properties.EnvironmentScale);
+    }
+
+    AmbientLightProperties OgreSceneManager::GetAmbientLight() const
+    {
+        const auto& upper = m_SceneManager->getAmbientLightUpperHemisphere();
+        const auto& lower = m_SceneManager->getAmbientLightLowerHemisphere();
+        const auto& direction = m_SceneManager->getAmbientLightHemisphereDir();
+        return { { upper.r, upper.g, upper.b }, { lower.r, lower.g, lower.b },
+            { direction.x, direction.y, direction.z }, upper.a };
     }
 
     SceneNodeHandle OgreSceneManager::CreateNode(const std::string& name, SceneNodeHandle parent)
@@ -203,5 +318,15 @@ namespace plagc
         Ogre::Item* item = RequireItem(handle);
         if (subItemIndex >= item->getNumSubItems()) throw std::out_of_range("SubItem index out of range");
         item->getSubItem(subItemIndex)->setDatablock(m_Materials->GetOgreDatablock(material));
+    }
+
+    void OgreSceneManager::SetItemCastShadows(SceneItemHandle item, bool enabled)
+    {
+        RequireItem(item)->setCastShadows(enabled);
+    }
+
+    bool OgreSceneManager::GetItemCastShadows(SceneItemHandle item) const
+    {
+        return RequireItem(item)->getCastShadows();
     }
 }

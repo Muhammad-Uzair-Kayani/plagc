@@ -1,6 +1,7 @@
 #pragma once
 #include "Core/Core.h"
 #include "Contracts/RenderSystem/Camera.h"
+#include "Contracts/RenderSystem/Light.h"
 #include "Contracts/RenderSystem/ResourceManager.h"
 #include "Contracts/RenderSystem/MaterialSystem.h"
 
@@ -22,6 +23,14 @@ namespace plagc
         float Z = 0.0f;
     };
 
+    struct AmbientLightProperties
+    {
+        LightColor UpperColor{ 0.0f, 0.0f, 0.0f };
+        LightColor LowerColor{ 0.0f, 0.0f, 0.0f };
+        LightVector3 HemisphereDirection{ 0.0f, 1.0f, 0.0f };
+        float EnvironmentScale = 1.0f;
+    };
+
     class SceneManager
     {
     public:
@@ -30,6 +39,18 @@ namespace plagc
         virtual Camera* CreateCamera(const std::string& name) = 0;
         virtual Camera* GetCamera(const std::string& name) const = 0;
         virtual void DestroyCamera(const std::string& name) = 0;
+
+        virtual DirectionalLight* CreateDirectionalLight(const std::string& name, SceneNodeHandle parent = InvalidSceneNode) = 0;
+        virtual PointLight* CreatePointLight(const std::string& name, SceneNodeHandle parent = InvalidSceneNode) = 0;
+        virtual SpotLight* CreateSpotLight(const std::string& name, SceneNodeHandle parent = InvalidSceneNode) = 0;
+        virtual Light* GetLight(const std::string& name) const = 0;
+        virtual DirectionalLight* GetDirectionalLight(const std::string& name) const = 0;
+        virtual PointLight* GetPointLight(const std::string& name) const = 0;
+        virtual SpotLight* GetSpotLight(const std::string& name) const = 0;
+        virtual void DestroyLight(const std::string& name) = 0;
+
+        virtual void SetAmbientLight(const AmbientLightProperties& properties) = 0;
+        virtual AmbientLightProperties GetAmbientLight() const = 0;
 
         virtual SceneNodeHandle CreateNode(const std::string& name, SceneNodeHandle parent = InvalidSceneNode) = 0;
         virtual SceneNodeHandle GetNode(const std::string& name) const = 0;
@@ -44,6 +65,8 @@ namespace plagc
         virtual void DestroyItem(SceneItemHandle item) = 0;
         virtual void SetMaterial(SceneItemHandle item, MaterialHandle material) = 0;
         virtual void SetSubMaterial(SceneItemHandle item, std::size_t subItemIndex, MaterialHandle material) = 0;
+        virtual void SetItemCastShadows(SceneItemHandle item, bool enabled) = 0;
+        virtual bool GetItemCastShadows(SceneItemHandle item) const = 0;
 
     protected:
         SceneManager() = default;

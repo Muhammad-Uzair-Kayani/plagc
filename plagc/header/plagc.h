@@ -11,3 +11,5 @@
 #include "Contracts/RenderSystem/SceneManager.h"
 #include "Contracts/RenderSystem/ResourceManager.h"
 #include "Contracts/RenderSystem/MaterialSystem.h"
+#include "Contracts/RenderSystem/Light.h"
+#include "Contracts/RenderSystem/Shadow.h"

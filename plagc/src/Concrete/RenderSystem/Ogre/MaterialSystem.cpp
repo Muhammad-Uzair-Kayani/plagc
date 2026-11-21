@@ -71,10 +71,45 @@ namespace plagc
 		m_HlmsUnlit = static_cast<Ogre::HlmsUnlit*>(m_HlmsManager->getHlms(Ogre::HLMS_UNLIT));
 		m_HlmsPbs = static_cast<Ogre::HlmsPbs*>(m_HlmsManager->getHlms(Ogre::HLMS_PBS));
 
+		// Enable shader debugging for Vulkan GLSL compilation.
+		const fs::path shaderDebugPath = "C:/Personals/Game Engine Development/Debug";
+
+		fs::create_directories(shaderDebugPath);
+
+		m_HlmsPbs->setDebugOutputPath(
+			true,
+			false,
+			shaderDebugPath.generic_string() + "/"
+		);
+
 		CORE_INFO("Ogre Material System Initialized");
 		CORE_INFO("HLMS Unlit Registered");
 		CORE_INFO("HLMS PBS Registered");
 	}
+
+	void OgreMaterialSystem::ApplyShadowSettings(const ShadowSettings& settings)
+    {
+        Ogre::HlmsPbs::ShadowFilter filter;
+        switch (settings.Filter)
+        {
+        case ShadowFilter::PCF_2x2: filter = Ogre::HlmsPbs::PCF_2x2; break;
+        case ShadowFilter::PCF_3x3: filter = Ogre::HlmsPbs::PCF_3x3; break;
+        case ShadowFilter::PCF_4x4: filter = Ogre::HlmsPbs::PCF_4x4; break;
+        case ShadowFilter::PCF_5x5: filter = Ogre::HlmsPbs::PCF_5x5; break;
+        case ShadowFilter::PCF_6x6: filter = Ogre::HlmsPbs::PCF_6x6; break;
+        case ShadowFilter::ESM: filter = Ogre::HlmsPbs::ExponentialShadowMaps; break;
+        default: throw std::invalid_argument("Unsupported shadow filter");
+        }
+
+        const bool esm = settings.Filter == ShadowFilter::ESM;
+        m_HlmsPbs->setShadowSettings(filter);
+        m_HlmsUnlit->setShadowSettings(esm);
+        if (esm)
+        {
+            m_HlmsPbs->setEsmK(settings.EsmK);
+            m_HlmsUnlit->setEsmK(settings.EsmK);
+        }
+    }
 
 	OgreMaterialSystem::~OgreMaterialSystem()
 	{
@@ -246,6 +281,14 @@ namespace plagc
 		auto& pbs = dynamic_cast<Ogre::HlmsPbsDatablock&>(*material.Datablock);
 		pbs.setMetalness(metalness);
 	}
+
+    void OgreMaterialSystem::SetReceiveShadows(MaterialHandle material, bool enabled)
+    {
+        MaterialRecord& record = Require(material);
+        if (record.Type != MaterialType::PBS)
+            throw std::runtime_error("ReceiveShadows is supported only for PBS materials");
+        static_cast<Ogre::HlmsPbsDatablock*>(record.Datablock)->setReceiveShadows(enabled);
+    }
 
 	void OgreMaterialSystem::SetTexture(MaterialHandle handle, MaterialTexture slot, const std::string& filename)
 	{

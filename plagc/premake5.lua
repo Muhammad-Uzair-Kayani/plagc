@@ -38,7 +38,7 @@ project "plagc"
     }
 
     useOgreHeaders()
-    linkOgreVulkan()
+    linkOgreVulkan() -- Source-built Ogre project dependencies
 
     defines {
         "GLFW_INCLUDE_NONE",

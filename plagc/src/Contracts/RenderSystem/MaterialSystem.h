@@ -49,6 +49,8 @@ namespace plagc
 
 		virtual void SetMetalness( MaterialHandle material, float metalness ) = 0;
 
+		virtual void SetReceiveShadows( MaterialHandle material, bool enabled ) = 0;
+
 		virtual void SetTexture( MaterialHandle material, MaterialTexture slot, const std::string& filename ) = 0;
 	};
 

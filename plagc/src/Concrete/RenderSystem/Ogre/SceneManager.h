@@ -8,6 +8,7 @@ namespace Ogre
 {
     class Camera;
     class Item;
+    class Light;
     class SceneManager;
     class SceneNode;
 }
@@ -26,6 +27,18 @@ namespace plagc
         Camera* GetCamera(const std::string& name) const override;
         void DestroyCamera(const std::string& name) override;
 
+        DirectionalLight* CreateDirectionalLight(const std::string& name, SceneNodeHandle parent = InvalidSceneNode) override;
+        PointLight* CreatePointLight(const std::string& name, SceneNodeHandle parent = InvalidSceneNode) override;
+        SpotLight* CreateSpotLight(const std::string& name, SceneNodeHandle parent = InvalidSceneNode) override;
+        Light* GetLight(const std::string& name) const override;
+        DirectionalLight* GetDirectionalLight(const std::string& name) const override;
+        PointLight* GetPointLight(const std::string& name) const override;
+        SpotLight* GetSpotLight(const std::string& name) const override;
+        void DestroyLight(const std::string& name) override;
+
+        void SetAmbientLight(const AmbientLightProperties& properties) override;
+        AmbientLightProperties GetAmbientLight() const override;
+
         SceneNodeHandle CreateNode(const std::string& name, SceneNodeHandle parent = InvalidSceneNode) override;
         SceneNodeHandle GetNode(const std::string& name) const override;
         void DestroyNode(SceneNodeHandle node) override;
@@ -39,15 +52,25 @@ namespace plagc
         void DestroyItem(SceneItemHandle item) override;
         void SetMaterial(SceneItemHandle item, MaterialHandle material) override;
         void SetSubMaterial(SceneItemHandle item, std::size_t subItemIndex, MaterialHandle material) override;
+        void SetItemCastShadows(SceneItemHandle item, bool enabled) override;
+        bool GetItemCastShadows(SceneItemHandle item) const override;
 
         // Backend-only: OgreRenderer needs the native scene manager for compositor workspaces.
         Ogre::SceneManager* GetOgreSceneManager() const { return m_SceneManager; }
+        OgreMaterialSystem* GetOgreMaterialSystem() const { return m_Materials; }
 
     private:
         struct CameraRecord
         {
             Owner<Camera> Wrapper;
             Ogre::Camera* Native = nullptr;
+        };
+
+        struct LightRecord
+        {
+            Owner<Light> Wrapper;
+            Ogre::Light* Native = nullptr;
+            Ogre::SceneNode* TransformNode = nullptr;
         };
 
         struct NodeRecord
@@ -62,12 +85,14 @@ namespace plagc
             Ogre::Item* Native = nullptr;
         };
 
+        Light* CreateLight(const std::string& name, SceneNodeHandle parent, LightType type);
         Ogre::SceneNode* RequireNode(SceneNodeHandle handle) const;
         Ogre::Item* RequireItem(SceneItemHandle handle) const;
 
         Ogre::SceneManager* m_SceneManager = nullptr;
         OgreMaterialSystem* m_Materials = nullptr; // Non-owning; must outlive this scene.
         std::unordered_map<std::string, CameraRecord> m_Cameras;
+        std::unordered_map<std::string, LightRecord> m_Lights;
         std::unordered_map<SceneNodeHandle, NodeRecord> m_Nodes;
         std::unordered_map<SceneItemHandle, ItemRecord> m_Items;
         std::unordered_map<std::string, SceneNodeHandle> m_NodesByName;
